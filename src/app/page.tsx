@@ -20,12 +20,18 @@ import { prisma } from '@/lib/db';
 export const revalidate = 60; // Refresh dynamic event settings every minute
 
 export default async function HomePage() {
-  // Read dynamic event settings from DB
-  const settingsRecords = await prisma.eventSetting.findMany();
+  // Read dynamic event settings from DB with fallback for build-time static generation
   const settingsMap: Record<string, string> = {};
-  settingsRecords.forEach((s) => {
-    settingsMap[s.key] = s.value;
-  });
+  try {
+    if (process.env.DATABASE_URL) {
+      const settingsRecords = await prisma.eventSetting.findMany();
+      settingsRecords.forEach((s) => {
+        settingsMap[s.key] = s.value;
+      });
+    }
+  } catch (err) {
+    console.warn('Database query skipped during static build generation:', err);
+  }
 
   const eventName = settingsMap.eventName || 'EUREKA! – Road To Enterprise 2026';
   const organizer = settingsMap.organizerName || 'ZeroTrace';
