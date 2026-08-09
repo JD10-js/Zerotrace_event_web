@@ -64,8 +64,7 @@ export default function AdminLoginPage() {
                 type="email"
                 name="email"
                 required
-                defaultValue="admin@zerotrace.org"
-                placeholder="admin@zerotrace.org"
+                placeholder="admin@example.com"
                 className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl px-4 py-3 text-sm text-white focus:outline-none"
               />
             </div>
@@ -78,7 +77,6 @@ export default function AdminLoginPage() {
                 type="password"
                 name="password"
                 required
-                defaultValue="Admin@Eureka2026"
                 placeholder="••••••••••••"
                 className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl px-4 py-3 text-sm text-white focus:outline-none"
               />
@@ -93,15 +91,6 @@ export default function AdminLoginPage() {
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
-
-          <div className="p-3 bg-[#05070A] rounded-xl border border-[#1E293B] text-[11px] text-[#AAB4C3] space-y-1">
-            <p className="text-white font-semibold flex items-center gap-1">
-              <Lock className="w-3 h-3 text-[#147BFF]" />
-              SEED SUPER ADMIN CREDENTIALS:
-            </p>
-            <p className="font-mono text-[#147BFF]">admin@zerotrace.org</p>
-            <p className="font-mono text-[#AAB4C3]">Admin@Eureka2026</p>
-          </div>
         </div>
 
         <div className="text-center text-xs text-[#AAB4C3]">
