@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg: #05070A;
+  --color-navy: #071426;
+  --color-dark: #0B1F3A;
+  --color-blue: #147BFF;
+  --color-gray: #AAB4C3;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: #FFFFFF;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #05070A;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #0B1F3A;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #147BFF;
+}
+
+/* Glassmorphism Card Style */
+.glass-panel {
+  background: rgba(7, 20, 38, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(20, 123, 255, 0.15);
+}
+
+.glass-card {
+  background: rgba(11, 31, 58, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card:hover {
+  border-color: rgba(20, 123, 255, 0.3);
+}
+
+/* Glow Border Accent */
+.blue-glow-border {
+  box-shadow: 0 0 25px rgba(20, 123, 255, 0.15);
+}
+
+.subtle-grid-bg {
+  background-image: radial-gradient(rgba(20, 123, 255, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}

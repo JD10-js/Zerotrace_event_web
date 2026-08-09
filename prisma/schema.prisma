@@ -1,0 +1,114 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model AdminUser {
+  id           String       @id @default(uuid())
+  name         String
+  email        String       @unique
+  passwordHash String
+  role         String       @default("CUSTOM")
+  isActive     Boolean      @default(true)
+  lastLogin    DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  permissions  Permission[]
+  auditLogs    AuditLog[]
+}
+
+model Permission {
+  id         String    @id @default(uuid())
+  adminId    String
+  permission String
+  admin      AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@unique([adminId, permission])
+}
+
+model AdminInvitation {
+  id          String    @id @default(uuid())
+  email       String
+  token       String    @unique
+  role        String
+  permissions String    // JSON stringified array of permission names
+  invitedBy   String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model Team {
+  id                String       @id @default(uuid())
+  teamId            String       @unique // e.g. ERE26-0001
+  name              String
+  college           String
+  department        String
+  city              String
+  leaderName        String
+  leaderEmail       String
+  leaderPhone       String
+  status            String       @default("CONFIRMED") // CONFIRMED, CANCELLED, REVOKED
+  verificationToken String       @unique
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  members           TeamMember[]
+  tickets           Ticket[]
+  checkIn           CheckIn?
+}
+
+model TeamMember {
+  id         String  @id @default(uuid())
+  teamDbId   String
+  fullName   String
+  department String?
+  year       String?
+  email      String?
+  phone      String?
+  team       Team    @relation(fields: [teamDbId], references: [id], onDelete: Cascade)
+}
+
+model Ticket {
+  id           String   @id @default(uuid())
+  ticketNumber String   @unique
+  teamDbId     String
+  status       String   @default("ACTIVE") // ACTIVE, REVOKED
+  generatedAt  DateTime @default(now())
+  team         Team     @relation(fields: [teamDbId], references: [id], onDelete: Cascade)
+}
+
+model CheckIn {
+  id                   String   @id @default(uuid())
+  teamDbId             String   @unique
+  checkedInAt          DateTime @default(now())
+  checkedInByAdminId   String
+  checkedInByAdminName String
+  notes                String?
+  team                 Team     @relation(fields: [teamDbId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id            String     @id @default(uuid())
+  action        String
+  adminId       String?
+  adminEmail    String?
+  relatedTeamId String?
+  details       String?
+  createdAt     DateTime   @default(now())
+  admin         AdminUser? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+}
+
+model EventSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model SequenceCounter {
+  name         String @id
+  currentValue Int    @default(1)
+}
