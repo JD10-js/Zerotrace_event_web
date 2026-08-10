@@ -58,7 +58,11 @@ export async function loginAdminAction(formData: FormData) {
 
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: error.message || 'Login failed.' };
+    console.error('Admin login error:', error);
+    if (error?.message?.includes('DATABASE_URL') || error?.code === 'P1001' || error?.code === 'P1003') {
+      return { success: false, error: 'Database connection error. Please set DATABASE_URL environment variable in your server dashboard.' };
+    }
+    return { success: false, error: error.message || 'Login failed. Please check your credentials.' };
   }
 }
 

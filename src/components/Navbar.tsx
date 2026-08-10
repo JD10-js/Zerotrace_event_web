@@ -32,7 +32,6 @@ export default function Navbar() {
             <Link href="/" className="hover:text-white transition-colors">Overview</Link>
             <Link href="#why-participate" className="hover:text-white transition-colors">Why Participate</Link>
             <Link href="#process" className="hover:text-white transition-colors">Process</Link>
-            <Link href="#dates" className="hover:text-white transition-colors">Important Dates</Link>
             <Link href="#faq" className="hover:text-white transition-colors">FAQ</Link>
             <Link href="#contact" className="hover:text-white transition-colors">Contact</Link>
           </nav>
@@ -90,13 +89,6 @@ export default function Navbar() {
             className="block text-sm font-medium text-[#AAB4C3] py-2 hover:text-white"
           >
             Process
-          </Link>
-          <Link
-            href="#dates"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-sm font-medium text-[#AAB4C3] py-2 hover:text-white"
-          >
-            Important Dates
           </Link>
           <Link
             href="#faq"

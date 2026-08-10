@@ -238,26 +238,6 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* IMPORTANT DATES SECTION */}
-        <section id="dates" className="py-20">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
-            <div className="space-y-3">
-              <span className="text-xs font-bold uppercase tracking-widest text-[#147BFF]">SCHEDULE</span>
-              <h3 className="text-3xl font-extrabold text-white">Important Event Dates</h3>
-            </div>
-
-            <div className="glass-panel p-8 rounded-3xl border border-[#1E293B] text-left space-y-4">
-              <div className="flex items-center gap-3 text-white font-bold text-lg">
-                <Calendar className="w-6 h-6 text-[#147BFF]" />
-                <span>{importantDatesText}</span>
-              </div>
-              <p className="text-xs text-[#AAB4C3]">
-                Event Venue: <strong className="text-white">{eventVenue}</strong>
-              </p>
-            </div>
-          </div>
-        </section>
-
         {/* FAQ SECTION */}
         <section id="faq" className="py-20 bg-[#071426]/30 border-t border-[#1E293B]">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
