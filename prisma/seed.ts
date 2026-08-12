@@ -44,7 +44,7 @@ async function main() {
     { key: 'teamIdPrefix', value: 'ERE26' },
     { key: 'startingSequence', value: '1001' },
     { key: 'eventVenue', value: 'Main Auditorium, Innovation Block' },
-    { key: 'eventDate', value: 'March 15-16, 2026' },
+    { key: 'eventDate', value: 'August 17, 2026' },
     { key: 'importantDates', value: 'Registration Closes: March 1, 2026 | Round 1: March 15 | Grand Finale: March 16' },
     { key: 'contactEmail', value: 'contact@zerotrace.org' },
     { key: 'contactPhone', value: '+1 (800) 555-0199' },

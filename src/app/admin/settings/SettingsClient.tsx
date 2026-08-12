@@ -22,7 +22,7 @@ export default function SettingsClient({
   const [teamIdPrefix, setTeamIdPrefix] = useState(initialSettings.teamIdPrefix || 'ERE26');
   const [startingSequence, setStartingSequence] = useState(initialSettings.startingSequence || '1001');
   const [eventVenue, setEventVenue] = useState(initialSettings.eventVenue || 'Main Auditorium, Innovation Block');
-  const [eventDate, setEventDate] = useState(initialSettings.eventDate || 'March 15-16, 2026');
+  const [eventDate, setEventDate] = useState(initialSettings.eventDate || 'August 17, 2026');
   const [importantDates, setImportantDates] = useState(initialSettings.importantDates || 'Registration Closes: March 1, 2026');
   const [contactEmail, setContactEmail] = useState(initialSettings.contactEmail || 'contact@zerotrace.org');
 

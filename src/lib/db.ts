@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
-// Fallback to local SQLite file:./dev.db if DATABASE_URL is not set in production environment variables
-const dbUrl = process.env.DATABASE_URL || 'file:./dev.db';
+// Fallback to dummy postgresql connection string if DATABASE_URL is not set in environment
+const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/eureka_db';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

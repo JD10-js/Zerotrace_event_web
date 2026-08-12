@@ -36,7 +36,7 @@ export default async function HomePage() {
   const eventName = settingsMap.eventName || 'EUREKA! – Road To Enterprise 2026';
   const organizer = settingsMap.organizerName || 'ZeroTrace';
   const eventVenue = settingsMap.eventVenue || 'Auditorium Hall, Innovation Campus';
-  const eventDate = settingsMap.eventDate || 'March 15-16, 2026';
+  const eventDate = settingsMap.eventDate || 'August 17, 2026';
   const importantDatesText = settingsMap.importantDates || 'Registration Closes: March 1, 2026';
   const contactEmail = settingsMap.contactEmail || 'contact@zerotrace.org';
   const regOpen = settingsMap.registrationOpen !== 'false';
