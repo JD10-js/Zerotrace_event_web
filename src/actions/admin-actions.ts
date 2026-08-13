@@ -6,6 +6,7 @@ import { hasPermission, ROLE_PRESETS } from '@/lib/permissions';
 import { logAudit } from '@/lib/audit';
 import crypto from 'crypto';
 import { sendEmail } from '@/lib/email';
+import { headers } from 'next/headers';
 
 export async function inviteAdminAction({
   email,
@@ -61,8 +62,11 @@ export async function inviteAdminAction({
       details: { invitedEmail: cleanEmail, role, permissions: effectivePermissions },
     });
 
-    // Send Invitation Email
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    // Dynamic Domain Detection from Request Headers
+    const headerList = headers();
+    const host = headerList.get('host');
+    const proto = headerList.get('x-forwarded-proto') || (host?.includes('localhost') ? 'http' : 'https');
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (host ? `${proto}://${host}` : 'http://localhost:3000');
     const inviteLink = `${appUrl}/admin/accept-invitation?token=${token}`;
 
     await sendEmail({

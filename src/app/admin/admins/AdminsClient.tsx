@@ -252,10 +252,58 @@ export default function AdminsClient({
             )}
 
             {inviteLinkCreated && (
-              <div className="p-4 bg-[#05070A] border border-[#147BFF] rounded-xl space-y-2 text-xs">
-                <span className="text-[10px] font-bold text-[#147BFF] block uppercase">INVITATION LINK CREATED</span>
-                <p className="font-mono text-white break-all text-[11px] bg-[#071426] p-2 rounded">{inviteLinkCreated}</p>
-                <p className="text-[10px] text-[#AAB4C3]">Pass this link directly to the admin or check local simulated email logs.</p>
+              <div className="p-4 bg-[#05070A] border border-[#147BFF] rounded-xl space-y-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-[#147BFF] uppercase tracking-wider">
+                    OFFICIAL INVITATION LINK CREATED
+                  </span>
+                  <span className="text-[10px] text-emerald-400 font-semibold font-mono">Expires in 48 Hours</span>
+                </div>
+
+                <div className="bg-[#071426] p-3 rounded-lg border border-[#1E293B] flex items-center justify-between gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={
+                      typeof window !== 'undefined' && inviteLinkCreated.includes('localhost') && !window.location.host.includes('localhost')
+                        ? `${window.location.origin}/admin/accept-invitation?token=${inviteLinkCreated.split('token=').pop()}`
+                        : inviteLinkCreated
+                    }
+                    className="bg-transparent font-mono text-white text-[11px] w-full focus:outline-none select-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const finalUrl =
+                        typeof window !== 'undefined' && inviteLinkCreated.includes('localhost') && !window.location.host.includes('localhost')
+                          ? `${window.location.origin}/admin/accept-invitation?token=${inviteLinkCreated.split('token=').pop()}`
+                          : inviteLinkCreated;
+                      navigator.clipboard.writeText(finalUrl);
+                      alert('Invitation link copied to clipboard!');
+                    }}
+                    className="px-3 py-1.5 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-[11px] text-white rounded shrink-0 shadow flex items-center gap-1"
+                  >
+                    📋 Copy Link
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <p className="text-[10px] text-[#AAB4C3]">
+                    Send this link to <strong className="text-white">{inviteEmail || 'the invited admin'}</strong> or open it directly to activate the account.
+                  </p>
+                  <a
+                    href={
+                      typeof window !== 'undefined' && inviteLinkCreated.includes('localhost') && !window.location.host.includes('localhost')
+                        ? `${window.location.origin}/admin/accept-invitation?token=${inviteLinkCreated.split('token=').pop()}`
+                        : inviteLinkCreated
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] font-bold text-[#147BFF] hover:underline shrink-0"
+                  >
+                    Open Link ↗
+                  </a>
+                </div>
               </div>
             )}
 
