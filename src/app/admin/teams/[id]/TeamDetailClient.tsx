@@ -23,14 +23,20 @@ import {
   revokeTicketAction,
   regenerateTicketAction,
   resendTicketEmailAction,
+  uploadTeamPresentationAction,
+  removeTeamPresentationAction,
 } from '@/actions/team-actions';
 import { confirmCheckInAction } from '@/actions/checkin-actions';
 import { hasPermission } from '@/lib/permissions';
+import { useRouter } from 'next/navigation';
 
 export default function TeamDetailClient({ team, admin }: { team: any; admin: any }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [uploadingPpt, setUploadingPpt] = useState(false);
+  const [pptLinkInput, setPptLinkInput] = useState('');
 
   // Edit form state
   const [name, setName] = useState(team.name);
@@ -266,6 +272,115 @@ export default function TeamDetailClient({ team, admin }: { team: any; admin: an
                 <p className="font-medium text-white mt-0.5">{new Date(team.createdAt).toLocaleString()}</p>
               </div>
             </div>
+          </div>
+
+          {/* Presentation PPT / PDF Pitch Deck Card */}
+          <div className="glass-panel p-6 rounded-2xl border border-[#147BFF]/30 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
+              <h3 className="text-sm font-bold uppercase text-white flex items-center gap-2">
+                <Presentation className="w-4 h-4 text-[#147BFF]" />
+                PITCH PRESENTATION (PPT / PDF)
+              </h3>
+              {team.presentationUrl && (
+                <button
+                  onClick={async () => {
+                    if (confirm('Remove presentation file for this team?')) {
+                      const res = await removeTeamPresentationAction(team.teamId);
+                      if (res.success) router.refresh();
+                      else alert(res.error);
+                    }
+                  }}
+                  className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 font-bold"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  Remove File
+                </button>
+              )}
+            </div>
+
+            {team.presentationUrl ? (
+              <div className="bg-[#05070A] p-4 rounded-xl border border-[#1E293B] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#147BFF]/20 border border-[#147BFF]/40 flex items-center justify-center text-[#147BFF]">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">
+                      {team.presentationFileName || 'Pitch_Deck.pdf'}
+                    </h4>
+                    <span className="text-[10px] text-emerald-400 font-semibold uppercase">READY FOR STAGE PRESENTATION</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/admin/present/${team.teamId}`}
+                    className="px-4 py-2 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-xs text-white rounded-xl flex items-center gap-1.5 shadow"
+                  >
+                    Open Stage Mode ↗
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="border-2 border-dashed border-[#1E293B] hover:border-[#147BFF] rounded-2xl p-6 text-center space-y-3 bg-[#05070A]/50 transition-all">
+                  <FileText className="w-8 h-8 text-[#147BFF] mx-auto" />
+                  <div>
+                    <h4 className="text-xs font-bold text-white uppercase">Upload PowerPoint (.ppt, .pptx) or PDF File</h4>
+                    <p className="text-[11px] text-[#AAB4C3] mt-0.5">Supports files up to 50MB</p>
+                  </div>
+
+                  <label className="inline-block px-4 py-2 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-xs text-white rounded-xl cursor-pointer shadow">
+                    {uploadingPpt ? 'UPLOADING...' : 'SELECT PPT / PDF FILE'}
+                    <input
+                      type="file"
+                      accept=".pdf,.ppt,.pptx"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setUploadingPpt(true);
+                        const reader = new FileReader();
+                        reader.onload = async () => {
+                          const dataUrl = reader.result as string;
+                          const res = await uploadTeamPresentationAction(team.teamId, file.name, dataUrl);
+                          setUploadingPpt(false);
+                          if (res.success) router.refresh();
+                          else alert(res.error || 'Upload failed.');
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={pptLinkInput}
+                    onChange={(e) => setPptLinkInput(e.target.value)}
+                    placeholder="Or paste Google Slides / Canva presentation link"
+                    className="flex-1 bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl px-4 py-2 text-xs text-white focus:outline-none"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!pptLinkInput.trim()) return;
+                      setUploadingPpt(true);
+                      const res = await uploadTeamPresentationAction(team.teamId, 'Google Slides / Canva Link', pptLinkInput.trim());
+                      setUploadingPpt(false);
+                      if (res.success) {
+                        setPptLinkInput('');
+                        router.refresh();
+                      } else alert(res.error);
+                    }}
+                    disabled={uploadingPpt || !pptLinkInput.trim()}
+                    className="px-4 py-2 bg-[#071426] hover:bg-[#0B1F3A] border border-[#147BFF]/40 text-xs font-bold text-[#147BFF] rounded-xl"
+                  >
+                    Attach Link
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Leader & Members Card */}
