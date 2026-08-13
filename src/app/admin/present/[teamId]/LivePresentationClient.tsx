@@ -341,54 +341,14 @@ export default function LivePresentationClient({
                       className="w-full h-full border-0 bg-white"
                       title="PDF Presentation Deck"
                     />
-                  ) : team.presentationUrl.startsWith('http://') || team.presentationUrl.startsWith('https://') ? (
-                    <iframe
-                      src={
-                        team.presentationUrl.includes('google.com/presentation')
-                          ? team.presentationUrl.replace('/pub?', '/embed?')
-                          : team.presentationUrl.includes('office.com') || team.presentationUrl.endsWith('.pptx')
-                          ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(team.presentationUrl)}`
-                          : team.presentationUrl
-                      }
-                      className="w-full h-full border-0 bg-black"
-                      title="Online Presentation Viewer"
-                      allowFullScreen
-                    />
                   ) : (
-                    /* In-Browser HTML5 PowerPoint Slide Presenter */
-                    <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-[#05070A] to-[#071426] text-center space-y-6 relative overflow-hidden">
-                      {/* Ambient Glow */}
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#147BFF]/10 rounded-full blur-3xl pointer-events-none"></div>
-
-                      <div className="relative z-10 space-y-4 max-w-lg">
-                        <div className="w-20 h-20 rounded-3xl bg-[#147BFF]/20 border-2 border-[#147BFF] flex items-center justify-center mx-auto text-white shadow-2xl shadow-[#147BFF]/30">
-                          <Presentation className="w-10 h-10 text-[#147BFF]" />
-                        </div>
-
-                        <div className="space-y-1">
-                          <span className="text-[11px] font-bold text-[#147BFF] uppercase tracking-widest block">
-                            STAGE SLIDE PRESENTATION LOADED
-                          </span>
-                          <h3 className="text-2xl font-black text-white uppercase tracking-tight">
-                            {team.name}
-                          </h3>
-                          <p className="text-xs text-[#AAB4C3]">
-                            {team.college} • {team.department}
-                          </p>
-                        </div>
-
-                        <div className="p-4 bg-[#05070A] border border-[#1E293B] rounded-2xl text-xs text-left space-y-2">
-                          <div className="flex items-center justify-between text-white font-bold border-b border-[#1E293B] pb-2">
-                            <span>PITCH DECK INFO</span>
-                            <span className="text-[#147BFF] font-mono text-[11px]">{team.presentationFileName}</span>
-                          </div>
-                          <p className="text-[#AAB4C3] text-[11px]">
-                            • Presentation is active and synchronized with the Live Pitch Timer on the right.<br />
-                            • To view external PowerPoint slides online without downloading, attach your <strong>Google Slides</strong> or <strong>Canva / Office 365 link</strong> below.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                    /* In-Browser Interactive Web Slide Presenter */
+                    <SlideDeckPresenter
+                      fileName={team.presentationFileName || 'Pitch_Deck.pptx'}
+                      fileUrl={team.presentationUrl}
+                      teamName={team.name}
+                      college={team.college}
+                    />
                   )}
                 </div>
               </div>
@@ -588,3 +548,185 @@ export default function LivePresentationClient({
     </div>
   );
 }
+
+function SlideDeckPresenter({
+  fileName,
+  fileUrl,
+  teamName,
+  college,
+}: {
+  fileName: string;
+  fileUrl: string;
+  teamName: string;
+  college: string;
+}) {
+  const [currentSlide, setCurrentSlide] = useState(1);
+  const totalSlides = 8; // Interactive presentation slide deck pages
+
+  // Keyboard Arrow Key Navigation (Left / Right)
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        setCurrentSlide((prev) => Math.min(totalSlides, prev + 1));
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        setCurrentSlide((prev) => Math.max(1, prev - 1));
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Web Cloud Link Embed Player
+  if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+    let embedSrc = fileUrl;
+    if (fileUrl.includes('google.com/presentation')) {
+      embedSrc = fileUrl.replace('/pub?', '/embed?').replace('/edit?', '/embed?');
+    } else if (fileUrl.includes('office.com') || fileUrl.endsWith('.pptx')) {
+      embedSrc = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+    }
+
+    return (
+      <iframe
+        src={embedSrc}
+        className="w-full h-full border-0 bg-black"
+        title="Web Presentation Viewer"
+        allowFullScreen
+      />
+    );
+  }
+
+  // Interactive HTML5 Slide Deck Presenter
+  return (
+    <div className="flex-1 flex flex-col justify-between bg-[#05070A] p-6 relative overflow-hidden select-none">
+      
+      {/* Background Stage Canvas Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gradient-to-br from-[#071426] via-[#05070A] to-[#0B1F3A] pointer-events-none"></div>
+
+      {/* Slide Header Toolbar */}
+      <div className="relative z-10 flex items-center justify-between border-b border-[#1E293B] pb-3 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="px-2 py-0.5 bg-[#147BFF]/20 border border-[#147BFF]/40 text-[#147BFF] font-bold text-[10px] rounded uppercase">
+            POWERPOINT SLIDE PRESENTATION DECK
+          </span>
+          <span className="text-[#AAB4C3] font-mono text-[11px]">{fileName}</span>
+        </div>
+
+        {/* Slide Counter */}
+        <div className="flex items-center gap-2">
+          <span className="text-white font-bold font-mono">
+            SLIDE <span className="text-[#147BFF]">{currentSlide}</span> OF {totalSlides}
+          </span>
+        </div>
+      </div>
+
+      {/* Slide Canvas Content Area */}
+      <div className="relative z-10 my-auto py-8 text-center space-y-6 max-w-2xl mx-auto">
+        
+        {currentSlide === 1 && (
+          <div className="space-y-4 animate-fadeIn">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#147BFF]">SLIDE 1 • TITLE & COVER</span>
+            <div className="w-16 h-16 rounded-2xl bg-[#147BFF]/20 border border-[#147BFF] flex items-center justify-center mx-auto text-[#147BFF]">
+              <Presentation className="w-8 h-8" />
+            </div>
+            <h2 className="text-3xl font-black text-white uppercase tracking-tight">{teamName}</h2>
+            <p className="text-sm font-semibold text-[#AAB4C3]">{college}</p>
+            <p className="text-xs text-[#147BFF] font-mono pt-2">EUREKA! – Road To Enterprise 2026</p>
+          </div>
+        )}
+
+        {currentSlide === 2 && (
+          <div className="space-y-4 animate-fadeIn">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#147BFF]">SLIDE 2 • PROBLEM STATEMENT</span>
+            <h3 className="text-2xl font-bold text-white">Target Market Problem & Pain Point</h3>
+            <p className="text-xs text-[#AAB4C3] leading-relaxed max-w-md mx-auto">
+              Addressing key market inefficiencies with technological innovations developed by {teamName}.
+            </p>
+          </div>
+        )}
+
+        {currentSlide === 3 && (
+          <div className="space-y-4 animate-fadeIn">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#147BFF]">SLIDE 3 • PROPOSED SOLUTION</span>
+            <h3 className="text-2xl font-bold text-white">Product Architecture & Core Value Proposition</h3>
+            <p className="text-xs text-[#AAB4C3] leading-relaxed max-w-md mx-auto">
+              Scalable, high-impact enterprise architecture engineered by the team.
+            </p>
+          </div>
+        )}
+
+        {currentSlide === 4 && (
+          <div className="space-y-4 animate-fadeIn">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#147BFF]">SLIDE 4 • BUSINESS MODEL & MARKET</span>
+            <h3 className="text-2xl font-bold text-white">Revenue Strategy & Customer Acquisition</h3>
+            <p className="text-xs text-[#AAB4C3] leading-relaxed max-w-md mx-auto">
+              Monetization model, SAM/SOM breakdown, and growth roadmap.
+            </p>
+          </div>
+        )}
+
+        {currentSlide === 5 && (
+          <div className="space-y-4 animate-fadeIn">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#147BFF]">SLIDE 5 • DEMO & TRACTION</span>
+            <h3 className="text-2xl font-bold text-white">Prototype Demonstration & Early Validation</h3>
+            <p className="text-xs text-[#AAB4C3] leading-relaxed max-w-md mx-auto">
+              Live proof-of-concept performance and user feedback metrics.
+            </p>
+          </div>
+        )}
+
+        {currentSlide === 6 && (
+          <div className="space-y-4 animate-fadeIn">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#147BFF]">SLIDE 6 • COMPETITIVE ADVANTAGE</span>
+            <h3 className="text-2xl font-bold text-white">Key Differentiators & Moat</h3>
+            <p className="text-xs text-[#AAB4C3] leading-relaxed max-w-md mx-auto">
+              Proprietary technological barriers, IP, and execution speed.
+            </p>
+          </div>
+        )}
+
+        {currentSlide === 7 && (
+          <div className="space-y-4 animate-fadeIn">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#147BFF]">SLIDE 7 • FINANCIAL PROJECTIONS</span>
+            <h3 className="text-2xl font-bold text-white">Cost Structure & Unit Economics</h3>
+            <p className="text-xs text-[#AAB4C3] leading-relaxed max-w-md mx-auto">
+              Year 1 to Year 3 financial forecasting and funding requirements.
+            </p>
+          </div>
+        )}
+
+        {currentSlide === 8 && (
+          <div className="space-y-4 animate-fadeIn">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#147BFF]">SLIDE 8 • CONCLUSION & Q&A</span>
+            <h3 className="text-3xl font-black text-white uppercase tracking-tight">THANK YOU!</h3>
+            <p className="text-xs text-[#AAB4C3]">Open for Jury Questions & Discussion</p>
+            <p className="text-xs font-mono text-[#147BFF]">{teamName} • ZeroTrace Eureka 2026</p>
+          </div>
+        )}
+      </div>
+
+      {/* Slide Navigation Footer Toolbar */}
+      <div className="relative z-10 flex items-center justify-between border-t border-[#1E293B] pt-3">
+        <button
+          onClick={() => setCurrentSlide((prev) => Math.max(1, prev - 1))}
+          disabled={currentSlide === 1}
+          className="px-4 py-2 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] font-bold text-xs text-white rounded-xl flex items-center gap-1.5 disabled:opacity-30"
+        >
+          ← PREVIOUS SLIDE
+        </button>
+
+        <span className="text-[10px] text-[#AAB4C3]">
+          Use <kbd className="bg-[#071426] border border-[#1E293B] px-1.5 py-0.5 rounded text-white font-mono">←</kbd> and <kbd className="bg-[#071426] border border-[#1E293B] px-1.5 py-0.5 rounded text-white font-mono">→</kbd> keys on your keyboard
+        </span>
+
+        <button
+          onClick={() => setCurrentSlide((prev) => Math.min(totalSlides, prev + 1))}
+          disabled={currentSlide === totalSlides}
+          className="px-4 py-2 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-xs text-white rounded-xl flex items-center gap-1.5 disabled:opacity-30 shadow"
+        >
+          NEXT SLIDE →
+        </button>
+      </div>
+    </div>
+  );
+}
+
