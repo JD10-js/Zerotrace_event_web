@@ -13,6 +13,7 @@ import {
   FileText,
   User,
   Users,
+  Presentation,
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import TicketCard from '@/components/TicketCard';
@@ -135,6 +136,14 @@ export default function TeamDetailClient({ team, admin }: { team: any; admin: an
 
         {/* Action Controls */}
         <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/admin/present/${team.teamId}`}
+            className="px-4 py-2 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-xs text-white rounded-xl flex items-center gap-1.5 shadow-lg shadow-[#147BFF]/20"
+          >
+            <Presentation className="w-4 h-4" />
+            STAGE PRESENTATION & TIMER ↗
+          </Link>
+
           {hasPermission(admin, 'CHECK_IN') && !team.checkIn && team.status === 'CONFIRMED' && (
             <button
               onClick={handleManualCheckIn}

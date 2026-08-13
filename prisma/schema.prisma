@@ -53,8 +53,11 @@ model Team {
   leaderEmail       String
   leaderPhone       String
   status            String       @default("CONFIRMED") // CONFIRMED, CANCELLED, REVOKED
-  verificationToken String       @unique
-  createdAt         DateTime     @default(now())
+  verificationToken     String       @unique
+  presentationUrl       String?
+  presentationFileName String?
+  pitchDurationMinutes  Int?         @default(5)
+  createdAt             DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   members           TeamMember[]
   tickets           Ticket[]

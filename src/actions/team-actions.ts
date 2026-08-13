@@ -184,3 +184,89 @@ export async function resendTicketEmailAction(teamId: string) {
     return { success: false, error: error.message || 'Failed to resend ticket.' };
   }
 }
+
+export async function uploadTeamPresentationAction(
+  teamId: string,
+  fileName: string,
+  fileUrlOrData: string
+) {
+  try {
+    const admin = await getCurrentAdminSession();
+    if (!admin) return { success: false, error: 'Unauthorized.' };
+
+    if (!hasPermission(admin, 'EDIT_TEAM')) {
+      return { success: false, error: 'Forbidden: Missing EDIT_TEAM permission.' };
+    }
+
+    const team = await prisma.team.findUnique({ where: { teamId } });
+    if (!team) return { success: false, error: 'Team not found.' };
+
+    await prisma.team.update({
+      where: { teamId },
+      data: {
+        presentationUrl: fileUrlOrData,
+        presentationFileName: fileName,
+      },
+    });
+
+    await logAudit({
+      action: 'TEAM_PRESENTATION_UPLOADED',
+      adminId: admin.id,
+      adminEmail: admin.email,
+      relatedTeamId: teamId,
+      details: { fileName },
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to upload presentation.' };
+  }
+}
+
+export async function removeTeamPresentationAction(teamId: string) {
+  try {
+    const admin = await getCurrentAdminSession();
+    if (!admin) return { success: false, error: 'Unauthorized.' };
+
+    if (!hasPermission(admin, 'EDIT_TEAM')) {
+      return { success: false, error: 'Forbidden: Missing EDIT_TEAM permission.' };
+    }
+
+    await prisma.team.update({
+      where: { teamId },
+      data: {
+        presentationUrl: null,
+        presentationFileName: null,
+      },
+    });
+
+    await logAudit({
+      action: 'TEAM_PRESENTATION_REMOVED',
+      adminId: admin.id,
+      adminEmail: admin.email,
+      relatedTeamId: teamId,
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to remove presentation.' };
+  }
+}
+
+export async function updatePitchDurationAction(teamId: string, durationMinutes: number) {
+  try {
+    const admin = await getCurrentAdminSession();
+    if (!admin) return { success: false, error: 'Unauthorized.' };
+
+    await prisma.team.update({
+      where: { teamId },
+      data: {
+        pitchDurationMinutes: durationMinutes,
+      },
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to update pitch duration.' };
+  }
+}
