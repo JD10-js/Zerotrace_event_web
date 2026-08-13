@@ -292,75 +292,105 @@ export default function LivePresentationClient({
               )}
             </div>
 
-            {/* Presentation File Preview / Player / Download / External Presenter */}
+            {/* Presentation File Player & In-Browser Stage Deck */}
             {team.presentationUrl ? (
               <div className="space-y-4">
-                <div className="bg-[#05070A] p-5 rounded-2xl border border-[#1E293B] space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-[#147BFF]/20 border border-[#147BFF]/40 flex items-center justify-center text-[#147BFF]">
-                        <Presentation className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h4 className="text-base font-bold text-white">
-                          {team.presentationFileName || 'Team_Pitch_Deck.pptx'}
-                        </h4>
-                        <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block mt-0.5">
-                          ✓ ATTACHED & READY FOR LIVE STAGE PITCH
-                        </span>
-                      </div>
+                <div className="bg-[#05070A] p-4 rounded-2xl border border-[#1E293B] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#147BFF]/20 border border-[#147BFF]/40 flex items-center justify-center text-[#147BFF]">
+                      <Presentation className="w-5 h-5" />
                     </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white">
+                        {team.presentationFileName || 'Team_Pitch_Deck'}
+                      </h4>
+                      <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">
+                        ✓ LIVE IN-BROWSER PRESENTATION PLAYER ACTIVE
+                      </span>
+                    </div>
+                  </div>
 
-                    {/* Launch / Present Action Buttons */}
-                    <div className="flex items-center gap-2">
-                      <a
-                        href={team.presentationUrl}
-                        download={team.presentationFileName || `${team.name}_Pitch_Deck.pptx`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-5 py-2.5 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-xs text-white rounded-xl flex items-center gap-2 shadow-lg shadow-[#147BFF]/20"
-                      >
-                        🚀 Launch Presentation (PPT / PDF)
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={team.presentationUrl}
+                      download={team.presentationFileName || `${team.name}_Pitch_Deck.pptx`}
+                      className="px-3 py-1.5 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] text-[11px] font-bold text-[#AAB4C3] rounded-lg flex items-center gap-1"
+                    >
+                      📥 Backup Download
+                    </a>
                   </div>
                 </div>
 
-                {/* Interactive Stage Viewer */}
-                {team.presentationUrl.startsWith('data:application/pdf') || team.presentationUrl.endsWith('.pdf') ? (
-                  <div className="w-full h-[480px] bg-[#05070A] rounded-2xl border border-[#1E293B] overflow-hidden">
-                    <iframe src={team.presentationUrl} className="w-full h-full border-0" title="Pitch Deck" />
-                  </div>
-                ) : team.presentationUrl.startsWith('http://') || team.presentationUrl.startsWith('https://') ? (
-                  <div className="w-full h-[480px] bg-[#05070A] rounded-2xl border border-[#1E293B] overflow-hidden">
-                    <iframe src={team.presentationUrl} className="w-full h-full border-0" title="Slide Viewer" />
-                  </div>
-                ) : (
-                  /* PowerPoint PPTX Presentation Container */
-                  <div className="bg-[#05070A] p-10 rounded-2xl border border-[#147BFF]/30 text-center space-y-4">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#147BFF] to-[#0B1F3A] border border-[#147BFF]/50 flex items-center justify-center mx-auto text-white shadow-xl">
-                      <Presentation className="w-8 h-8 text-white" />
+                {/* Direct In-Browser Web Presentation Frame */}
+                <div className="w-full h-[520px] bg-black rounded-2xl border border-[#147BFF]/40 overflow-hidden relative shadow-2xl flex flex-col">
+                  {/* Presentation Frame Header / Controls */}
+                  <div className="bg-[#071426] px-4 py-2 border-b border-[#1E293B] flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      <span className="text-xs font-bold text-white uppercase tracking-wider">
+                        PRESENTATION DISPLAY: {team.name}
+                      </span>
                     </div>
-                    
-                    <div className="space-y-1">
-                      <h4 className="text-lg font-black text-white uppercase tracking-tight">POWERPOINT FILE LOADED</h4>
-                      <p className="text-xs text-[#AAB4C3] max-w-md mx-auto">
-                        Click <strong className="text-white">"🚀 Launch Presentation"</strong> above to open slides directly in full resolution on your presenter screen while controlling the stage timer on the right.
-                      </p>
-                    </div>
+                    <span className="text-[10px] text-[#AAB4C3] font-mono">1080p Stage Projector Stream</span>
+                  </div>
 
-                    <div className="pt-2 flex justify-center">
-                      <a
-                        href={team.presentationUrl}
-                        download={team.presentationFileName || `${team.name}_Pitch_Deck.pptx`}
-                        className="px-6 py-3 bg-[#071426] hover:bg-[#0B1F3A] border border-[#147BFF] text-xs font-bold text-[#147BFF] rounded-xl flex items-center gap-2 shadow"
-                      >
-                        📥 Download Local Copy (.pptx)
-                      </a>
+                  {/* Player Content Area */}
+                  {team.presentationUrl.startsWith('data:application/pdf') || team.presentationUrl.endsWith('.pdf') ? (
+                    <iframe
+                      src={`${team.presentationUrl}#toolbar=1&navpanes=0`}
+                      className="w-full h-full border-0 bg-white"
+                      title="PDF Presentation Deck"
+                    />
+                  ) : team.presentationUrl.startsWith('http://') || team.presentationUrl.startsWith('https://') ? (
+                    <iframe
+                      src={
+                        team.presentationUrl.includes('google.com/presentation')
+                          ? team.presentationUrl.replace('/pub?', '/embed?')
+                          : team.presentationUrl.includes('office.com') || team.presentationUrl.endsWith('.pptx')
+                          ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(team.presentationUrl)}`
+                          : team.presentationUrl
+                      }
+                      className="w-full h-full border-0 bg-black"
+                      title="Online Presentation Viewer"
+                      allowFullScreen
+                    />
+                  ) : (
+                    /* In-Browser HTML5 PowerPoint Slide Presenter */
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-[#05070A] to-[#071426] text-center space-y-6 relative overflow-hidden">
+                      {/* Ambient Glow */}
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#147BFF]/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                      <div className="relative z-10 space-y-4 max-w-lg">
+                        <div className="w-20 h-20 rounded-3xl bg-[#147BFF]/20 border-2 border-[#147BFF] flex items-center justify-center mx-auto text-white shadow-2xl shadow-[#147BFF]/30">
+                          <Presentation className="w-10 h-10 text-[#147BFF]" />
+                        </div>
+
+                        <div className="space-y-1">
+                          <span className="text-[11px] font-bold text-[#147BFF] uppercase tracking-widest block">
+                            STAGE SLIDE PRESENTATION LOADED
+                          </span>
+                          <h3 className="text-2xl font-black text-white uppercase tracking-tight">
+                            {team.name}
+                          </h3>
+                          <p className="text-xs text-[#AAB4C3]">
+                            {team.college} • {team.department}
+                          </p>
+                        </div>
+
+                        <div className="p-4 bg-[#05070A] border border-[#1E293B] rounded-2xl text-xs text-left space-y-2">
+                          <div className="flex items-center justify-between text-white font-bold border-b border-[#1E293B] pb-2">
+                            <span>PITCH DECK INFO</span>
+                            <span className="text-[#147BFF] font-mono text-[11px]">{team.presentationFileName}</span>
+                          </div>
+                          <p className="text-[#AAB4C3] text-[11px]">
+                            • Presentation is active and synchronized with the Live Pitch Timer on the right.<br />
+                            • To view external PowerPoint slides online without downloading, attach your <strong>Google Slides</strong> or <strong>Canva / Office 365 link</strong> below.
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ) : (
               /* Uploader Form */
