@@ -581,17 +581,34 @@ function SlideDeckPresenter({
     let embedSrc = fileUrl;
     if (fileUrl.includes('google.com/presentation')) {
       embedSrc = fileUrl.replace('/pub?', '/embed?').replace('/edit?', '/embed?');
+    } else if (fileUrl.includes('drive.google.com/file/d/')) {
+      embedSrc = fileUrl.replace('/view', '/preview').replace('/edit', '/preview');
     } else if (fileUrl.includes('office.com') || fileUrl.endsWith('.pptx')) {
       embedSrc = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
     }
 
     return (
-      <iframe
-        src={embedSrc}
-        className="w-full h-full border-0 bg-black"
-        title="Web Presentation Viewer"
-        allowFullScreen
-      />
+      <div className="w-full h-full flex flex-col bg-black">
+        <div className="bg-[#071426] px-4 py-2 border-b border-[#1E293B] flex items-center justify-between">
+          <span className="text-[11px] text-[#AAB4C3]">
+            💡 Tip: Ensure your Google Drive / Slides link permission is set to <strong>"Anyone with the link"</strong>
+          </span>
+          <a
+            href={fileUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="px-3 py-1 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-[11px] text-white rounded shrink-0 flex items-center gap-1"
+          >
+            Open Document Directly ↗
+          </a>
+        </div>
+        <iframe
+          src={embedSrc}
+          className="w-full flex-1 border-0 bg-black"
+          title="Web Presentation Viewer"
+          allowFullScreen
+        />
+      </div>
     );
   }
 
