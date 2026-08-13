@@ -292,45 +292,73 @@ export default function LivePresentationClient({
               )}
             </div>
 
-            {/* Presentation File Preview / Iframe / Download Link */}
+            {/* Presentation File Preview / Player / Download / External Presenter */}
             {team.presentationUrl ? (
               <div className="space-y-4">
-                <div className="bg-[#05070A] p-4 rounded-2xl border border-[#1E293B] flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#147BFF]/20 border border-[#147BFF]/40 flex items-center justify-center text-[#147BFF]">
-                      <FileText className="w-5 h-5" />
+                <div className="bg-[#05070A] p-5 rounded-2xl border border-[#1E293B] space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-[#147BFF]/20 border border-[#147BFF]/40 flex items-center justify-center text-[#147BFF]">
+                        <Presentation className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-bold text-white">
+                          {team.presentationFileName || 'Team_Pitch_Deck.pptx'}
+                        </h4>
+                        <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block mt-0.5">
+                          ✓ ATTACHED & READY FOR LIVE STAGE PITCH
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-white">
-                        {team.presentationFileName || 'Pitch_Deck.pdf'}
-                      </h4>
-                      <span className="text-[10px] text-emerald-400 font-semibold uppercase">READY FOR STAGE PRESENTATION</span>
+
+                    {/* Launch / Present Action Buttons */}
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={team.presentationUrl}
+                        download={team.presentationFileName || `${team.name}_Pitch_Deck.pptx`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-5 py-2.5 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-xs text-white rounded-xl flex items-center gap-2 shadow-lg shadow-[#147BFF]/20"
+                      >
+                        🚀 Launch Presentation (PPT / PDF)
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
                     </div>
                   </div>
-
-                  <a
-                    href={team.presentationUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-4 py-2 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-xs text-white rounded-xl flex items-center gap-2 shadow"
-                  >
-                    Open / Present
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
                 </div>
 
-                {/* If PDF data URL or HTTP URL: Embedded PDF Reader Frame */}
+                {/* Interactive Stage Viewer */}
                 {team.presentationUrl.startsWith('data:application/pdf') || team.presentationUrl.endsWith('.pdf') ? (
-                  <div className="w-full h-[400px] bg-[#05070A] rounded-2xl border border-[#1E293B] overflow-hidden">
+                  <div className="w-full h-[480px] bg-[#05070A] rounded-2xl border border-[#1E293B] overflow-hidden">
                     <iframe src={team.presentationUrl} className="w-full h-full border-0" title="Pitch Deck" />
                   </div>
+                ) : team.presentationUrl.startsWith('http://') || team.presentationUrl.startsWith('https://') ? (
+                  <div className="w-full h-[480px] bg-[#05070A] rounded-2xl border border-[#1E293B] overflow-hidden">
+                    <iframe src={team.presentationUrl} className="w-full h-full border-0" title="Slide Viewer" />
+                  </div>
                 ) : (
-                  <div className="bg-[#05070A] p-8 rounded-2xl border border-[#1E293B] text-center space-y-3">
-                    <Presentation className="w-12 h-12 text-[#147BFF] mx-auto" />
-                    <h4 className="text-base font-bold text-white">Presentation File Ready</h4>
-                    <p className="text-xs text-[#AAB4C3]">
-                      Click "Open / Present" to project Google Slides, Canva, or PPTX on venue screen.
-                    </p>
+                  /* PowerPoint PPTX Presentation Container */
+                  <div className="bg-[#05070A] p-10 rounded-2xl border border-[#147BFF]/30 text-center space-y-4">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#147BFF] to-[#0B1F3A] border border-[#147BFF]/50 flex items-center justify-center mx-auto text-white shadow-xl">
+                      <Presentation className="w-8 h-8 text-white" />
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <h4 className="text-lg font-black text-white uppercase tracking-tight">POWERPOINT FILE LOADED</h4>
+                      <p className="text-xs text-[#AAB4C3] max-w-md mx-auto">
+                        Click <strong className="text-white">"🚀 Launch Presentation"</strong> above to open slides directly in full resolution on your presenter screen while controlling the stage timer on the right.
+                      </p>
+                    </div>
+
+                    <div className="pt-2 flex justify-center">
+                      <a
+                        href={team.presentationUrl}
+                        download={team.presentationFileName || `${team.name}_Pitch_Deck.pptx`}
+                        className="px-6 py-3 bg-[#071426] hover:bg-[#0B1F3A] border border-[#147BFF] text-xs font-bold text-[#147BFF] rounded-xl flex items-center gap-2 shadow"
+                      >
+                        📥 Download Local Copy (.pptx)
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>
