@@ -14,11 +14,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  Shield,
   Volume2,
+  VolumeX,
   Trash2,
   ExternalLink,
   Presentation,
+  BellRing,
+  Layers,
+  Settings2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -55,12 +58,20 @@ export default function LivePresentationClient({
 }: LivePresentationClientProps) {
   const router = useRouter();
 
+  // Layout View Mode: 'stage' (Full presentation + floating small overlay timer) | 'split' (Side-by-side control dashboard)
+  const [layoutMode, setLayoutMode] = useState<'stage' | 'split'>('stage');
+
   // Timer State
   const [totalSeconds, setTotalSeconds] = useState(team.pitchDurationMinutes * 60);
   const [timeLeft, setTimeLeft] = useState(team.pitchDurationMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [customMinutesInput, setCustomMinutesInput] = useState(team.pitchDurationMinutes.toString());
   const [isTimeUp, setIsTimeUp] = useState(false);
+
+  // Custom Audio Beep Warning State
+  const [warningMinutes, setWarningMinutes] = useState(1); // Custom beep warning threshold in minutes
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [hasBeepedWarning, setHasBeepedWarning] = useState(false);
 
   // Fullscreen State
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -71,37 +82,93 @@ export default function LivePresentationClient({
   const [msg, setMsg] = useState('');
   const [slideLinkInput, setSlideLinkInput] = useState('');
 
+  // Web Audio API Beep Sound Helper
+  function playBeepSound(type: 'warning' | 'finish' | 'test') {
+    if (!audioEnabled && type !== 'test') return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+
+      if (type === 'warning') {
+        // Double warning chime (880Hz -> 1046Hz)
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(880, ctx.currentTime);
+        gain1.gain.setValueAtTime(0.3, ctx.currentTime);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start();
+        osc1.stop(ctx.currentTime + 0.25);
+
+        setTimeout(() => {
+          const osc2 = ctx.createOscillator();
+          const gain2 = ctx.createGain();
+          osc2.type = 'sine';
+          osc2.frequency.setValueAtTime(1046.5, ctx.currentTime);
+          gain2.gain.setValueAtTime(0.3, ctx.currentTime);
+          osc2.connect(gain2);
+          gain2.connect(ctx.destination);
+          osc2.start();
+          osc2.stop(ctx.currentTime + 0.35);
+        }, 300);
+      } else if (type === 'finish' || type === 'test') {
+        // Triple urgent finish alarm chime
+        [0, 300, 600].forEach((delay, idx) => {
+          setTimeout(() => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(987.77 + idx * 100, ctx.currentTime); // B5 note
+            gain.gain.setValueAtTime(0.4, ctx.currentTime);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.25);
+          }, delay);
+        });
+      }
+    } catch (e) {
+      console.error('Audio playback error:', e);
+    }
+  }
+
   // Timer Interval Effect
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
+
     if (isRunning && timeLeft > 0) {
       interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
+        setTimeLeft((prev) => {
+          const next = prev - 1;
+
+          // Check custom beep warning threshold
+          const warningSecondsThreshold = warningMinutes * 60;
+          if (next === warningSecondsThreshold && !hasBeepedWarning) {
+            setHasBeepedWarning(true);
+            playBeepSound('warning');
+          }
+
+          return next;
+        });
       }, 1000);
     } else if (isRunning && timeLeft === 0) {
       setIsRunning(false);
       setIsTimeUp(true);
-      // Play audio alarm beep if supported
-      try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
-        osc.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 1.5);
-      } catch (e) {}
+      playBeepSound('finish');
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, timeLeft]);
+  }, [isRunning, timeLeft, warningMinutes, hasBeepedWarning, audioEnabled]);
 
   // Set Preset Duration
   function setPresetMinutes(mins: number) {
     setIsRunning(false);
     setIsTimeUp(false);
+    setHasBeepedWarning(false);
     setTotalSeconds(mins * 60);
     setTimeLeft(mins * 60);
     setCustomMinutesInput(mins.toString());
@@ -119,6 +186,7 @@ export default function LivePresentationClient({
     if (timeLeft === 0) {
       setTimeLeft(totalSeconds);
       setIsTimeUp(false);
+      setHasBeepedWarning(false);
     }
     setIsRunning(!isRunning);
   }
@@ -126,6 +194,7 @@ export default function LivePresentationClient({
   function resetTimer() {
     setIsRunning(false);
     setIsTimeUp(false);
+    setHasBeepedWarning(false);
     setTimeLeft(totalSeconds);
   }
 
@@ -216,10 +285,10 @@ export default function LivePresentationClient({
   const nextTeam = currentIndex < allTeams.length - 1 ? allTeams[currentIndex + 1] : null;
 
   return (
-    <div ref={containerRef} className="space-y-6 max-w-7xl mx-auto">
+    <div ref={containerRef} className="space-y-6 max-w-[1600px] mx-auto relative min-h-screen pb-24">
       
-      {/* Top Controls Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-4 rounded-2xl border border-[#1E293B]">
+      {/* Top Controls & Navigation Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 glass-panel p-4 rounded-2xl border border-[#1E293B]">
         <div className="flex items-center gap-3">
           <Link
             href={`/admin/teams/${team.teamId}`}
@@ -231,22 +300,70 @@ export default function LivePresentationClient({
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono font-bold text-[#147BFF]">{team.teamId}</span>
               <span className="text-[10px] bg-[#147BFF]/20 text-[#147BFF] px-2 py-0.5 rounded font-bold uppercase">
-                STAGE PRESENTATION MODE
+                {team.name}
               </span>
             </div>
-            <h1 className="text-xl font-black text-white">{team.name} ({team.college})</h1>
+            <h1 className="text-lg font-black text-white">{team.college}</h1>
           </div>
         </div>
 
-        {/* Previous / Next Team Selector */}
-        <div className="flex items-center gap-3">
+        {/* Layout Switcher & Audio & Fullscreen Bar */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* View Mode Switcher */}
+          <div className="bg-[#05070A] p-1 rounded-xl border border-[#1E293B] flex items-center gap-1">
+            <button
+              onClick={() => setLayoutMode('stage')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                layoutMode === 'stage'
+                  ? 'bg-[#147BFF] text-white shadow'
+                  : 'text-[#AAB4C3] hover:text-white'
+              }`}
+            >
+              <Presentation className="w-3.5 h-3.5" />
+              Stage Presentation (Full PPT)
+            </button>
+            <button
+              onClick={() => setLayoutMode('split')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                layoutMode === 'split'
+                  ? 'bg-[#147BFF] text-white shadow'
+                  : 'text-[#AAB4C3] hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              Split View
+            </button>
+          </div>
+
+          {/* Sound Toggle & Test */}
+          <button
+            onClick={() => setAudioEnabled(!audioEnabled)}
+            className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1 ${
+              audioEnabled
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+            }`}
+          >
+            {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            {audioEnabled ? 'Sound On' : 'Muted'}
+          </button>
+
+          <button
+            onClick={() => playBeepSound('test')}
+            className="p-2 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] text-xs font-bold text-[#147BFF] rounded-xl flex items-center gap-1"
+          >
+            <BellRing className="w-3.5 h-3.5" />
+            Test Beep
+          </button>
+
+          {/* Next / Previous Team */}
           {prevTeam && (
             <Link
               href={`/admin/present/${prevTeam.teamId}`}
               className="p-2 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] rounded-xl text-xs font-bold text-white flex items-center gap-1"
             >
               <ChevronLeft className="w-4 h-4 text-[#147BFF]" />
-              Prev: {prevTeam.teamId}
+              Prev
             </Link>
           )}
 
@@ -255,7 +372,7 @@ export default function LivePresentationClient({
               href={`/admin/present/${nextTeam.teamId}`}
               className="p-2 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] rounded-xl text-xs font-bold text-white flex items-center gap-1"
             >
-              Next: {nextTeam.teamId}
+              Next
               <ChevronRight className="w-4 h-4 text-[#147BFF]" />
             </Link>
           )}
@@ -265,21 +382,20 @@ export default function LivePresentationClient({
             className="p-2.5 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-xs text-white rounded-xl shadow flex items-center gap-1.5"
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            {isFullscreen ? 'Exit Fullscreen' : 'Stage Fullscreen'}
+            {isFullscreen ? 'Exit Stage' : 'Stage Fullscreen'}
           </button>
         </div>
       </div>
 
-      {/* Main Grid: PPT Player & Pitch Timer */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left 7 Cols: Presentation Viewer & File Upload */}
-        <div className="lg:col-span-7 space-y-6">
+      {/* STAGE PRESENTATION MODE (Full-Screen Presentation + Floating Small Timer Box Overlay) */}
+      {layoutMode === 'stage' ? (
+        <div className="space-y-6">
+          {/* Main Full-Width Stage Presentation View */}
           <div className="glass-panel p-6 rounded-3xl border border-[#147BFF]/30 space-y-4">
             <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
               <h3 className="text-sm font-bold uppercase text-white flex items-center gap-2">
                 <Presentation className="w-4 h-4 text-[#147BFF]" />
-                TEAM PITCH PRESENTATION (PPT / PDF)
+                STAGE PRESENTATION DECK ({team.name})
               </h3>
               {team.presentationUrl && (
                 <button
@@ -287,85 +403,42 @@ export default function LivePresentationClient({
                   className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Remove File
+                  Remove Deck
                 </button>
               )}
             </div>
 
-            {/* Presentation File Player & In-Browser Stage Deck */}
             {team.presentationUrl ? (
-              <div className="space-y-4">
-                <div className="bg-[#05070A] p-4 rounded-2xl border border-[#1E293B] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#147BFF]/20 border border-[#147BFF]/40 flex items-center justify-center text-[#147BFF]">
-                      <Presentation className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-white">
-                        {team.presentationFileName || 'Team_Pitch_Deck'}
-                      </h4>
-                      <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">
-                        ✓ LIVE IN-BROWSER PRESENTATION PLAYER ACTIVE
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={team.presentationUrl}
-                      download={team.presentationFileName || `${team.name}_Pitch_Deck.pptx`}
-                      className="px-3 py-1.5 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] text-[11px] font-bold text-[#AAB4C3] rounded-lg flex items-center gap-1"
-                    >
-                      📥 Backup Download
-                    </a>
-                  </div>
-                </div>
-
-                {/* Direct In-Browser Web Presentation Frame */}
-                <div className="w-full h-[520px] bg-black rounded-2xl border border-[#147BFF]/40 overflow-hidden relative shadow-2xl flex flex-col">
-                  {/* Presentation Frame Header / Controls */}
-                  <div className="bg-[#071426] px-4 py-2 border-b border-[#1E293B] flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      <span className="text-xs font-bold text-white uppercase tracking-wider">
-                        PRESENTATION DISPLAY: {team.name}
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-[#AAB4C3] font-mono">1080p Stage Projector Stream</span>
-                  </div>
-
-                  {/* Player Content Area */}
-                  {team.presentationUrl.startsWith('data:application/pdf') || team.presentationUrl.endsWith('.pdf') ? (
-                    <iframe
-                      src={`${team.presentationUrl}#toolbar=1&navpanes=0`}
-                      className="w-full h-full border-0 bg-white"
-                      title="PDF Presentation Deck"
-                    />
-                  ) : (
-                    /* In-Browser Interactive Web Slide Presenter */
-                    <SlideDeckPresenter
-                      fileName={team.presentationFileName || 'Pitch_Deck.pptx'}
-                      fileUrl={team.presentationUrl}
-                      teamName={team.name}
-                      college={team.college}
-                    />
-                  )}
-                </div>
+              <div className="w-full h-[650px] bg-black rounded-2xl border border-[#147BFF]/40 overflow-hidden shadow-2xl">
+                {team.presentationUrl.startsWith('data:application/pdf') || team.presentationUrl.endsWith('.pdf') ? (
+                  <iframe
+                    src={`${team.presentationUrl}#toolbar=1&navpanes=0`}
+                    className="w-full h-full border-0 bg-white"
+                    title="PDF Stage Presentation"
+                  />
+                ) : (
+                  <SlideDeckPresenter
+                    fileName={team.presentationFileName || 'Pitch_Deck.pptx'}
+                    fileUrl={team.presentationUrl}
+                    teamName={team.name}
+                    college={team.college}
+                  />
+                )}
               </div>
             ) : (
-              /* Uploader Form */
-              <div className="space-y-6 py-4">
-                <div className="border-2 border-dashed border-[#1E293B] hover:border-[#147BFF] rounded-2xl p-8 text-center space-y-3 bg-[#05070A]/50 transition-all">
-                  <Upload className="w-10 h-10 text-[#147BFF] mx-auto" />
-                  <div>
-                    <h4 className="text-sm font-bold text-white">UPLOAD PITCH PRESENTATION FILE</h4>
-                    <p className="text-xs text-[#AAB4C3] mt-1">
-                      Upload PowerPoint (.ppt, .pptx) or PDF pitch deck for this team.
-                    </p>
-                  </div>
+              /* Upload Presentation Box */
+              <div className="border-2 border-dashed border-[#1E293B] hover:border-[#147BFF] rounded-2xl p-12 text-center space-y-4 bg-[#05070A]/50 transition-all">
+                <Upload className="w-12 h-12 text-[#147BFF] mx-auto" />
+                <div>
+                  <h4 className="text-base font-bold text-white uppercase">UPLOAD STAGE PITCH PRESENTATION</h4>
+                  <p className="text-xs text-[#AAB4C3] mt-1">
+                    Upload PowerPoint (.ppt, .pptx) or PDF pitch deck for {team.name}
+                  </p>
+                </div>
 
-                  <label className="inline-block px-5 py-2.5 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-xs text-white rounded-xl cursor-pointer shadow">
-                    {uploading ? 'UPLOADING...' : 'SELECT PRESENTATION FILE'}
+                <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-2">
+                  <label className="px-6 py-3 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-xs text-white rounded-xl cursor-pointer shadow">
+                    {uploading ? 'UPLOADING...' : 'SELECT PPT / PDF FILE'}
                     <input
                       type="file"
                       accept=".pdf,.ppt,.pptx"
@@ -375,176 +448,254 @@ export default function LivePresentationClient({
                   </label>
                 </div>
 
-                <div className="relative flex items-center justify-center">
-                  <div className="w-full border-t border-[#1E293B]"></div>
-                  <span className="bg-[#071426] px-3 text-[10px] text-[#AAB4C3] font-bold uppercase absolute">OR ATTACH SLIDE LINK</span>
-                </div>
-
-                <div className="flex gap-2 pt-2">
+                <div className="pt-4 max-w-md mx-auto flex gap-2">
                   <input
                     type="url"
                     value={slideLinkInput}
                     onChange={(e) => setSlideLinkInput(e.target.value)}
-                    placeholder="e.g. https://docs.google.com/presentation/d/... or Canva Link"
-                    className="flex-1 bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none"
+                    placeholder="Or paste Google Slides / Canva link"
+                    className="flex-1 bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl px-4 py-2 text-xs text-white focus:outline-none"
                   />
                   <button
                     onClick={handleLinkUpload}
                     disabled={uploading || !slideLinkInput.trim()}
-                    className="px-5 py-2.5 bg-[#071426] hover:bg-[#0B1F3A] border border-[#147BFF]/40 text-xs font-bold text-[#147BFF] rounded-xl"
+                    className="px-4 py-2 bg-[#071426] border border-[#147BFF]/40 text-xs font-bold text-[#147BFF] rounded-xl"
                   >
                     Attach Link
                   </button>
                 </div>
               </div>
             )}
-
-            {msg && (
-              <p className="text-center text-xs font-bold text-emerald-400">{msg}</p>
-            )}
           </div>
-        </div>
 
-        {/* Right 5 Cols: Custom Live Pitching Timer */}
-        <div className="lg:col-span-5 space-y-6">
-          <div
-            className={`glass-panel p-6 rounded-3xl border transition-all space-y-6 text-center ${
-              isTimeUp
-                ? 'border-rose-500 bg-rose-500/10 animate-pulse'
-                : timeLeft <= 60 && timeLeft > 0
-                ? 'border-amber-500/50 bg-amber-500/5'
-                : 'border-[#147BFF]/40'
-            }`}
-          >
-            <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
-              <span className="text-xs font-bold text-[#147BFF] uppercase tracking-wider flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-[#147BFF]" />
-                CUSTOM PITCH TIMER
-              </span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                isTimeUp ? 'bg-rose-500 text-white' : isRunning ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#0B1F3A] text-[#AAB4C3]'
-              }`}>
-                {isTimeUp ? 'TIME EXPIRED!' : isRunning ? 'TIMING LIVE' : 'PAUSED'}
-              </span>
-            </div>
+          {/* FLOATING SMALL TIMER OVERLAY WIDGET AT BOTTOM RIGHT */}
+          <div className="fixed bottom-6 right-6 z-50 shadow-2xl animate-fadeIn">
+            <div
+              className={`p-4 rounded-2xl border backdrop-blur-xl transition-all space-y-3 ${
+                isTimeUp
+                  ? 'bg-rose-950/90 border-rose-500 animate-pulse'
+                  : timeLeft <= warningMinutes * 60
+                  ? 'bg-amber-950/90 border-amber-500'
+                  : 'bg-[#071426]/95 border-[#147BFF]/50'
+              }`}
+            >
+              {/* Overlay Header */}
+              <div className="flex items-center justify-between gap-4 border-b border-[#1E293B] pb-2">
+                <span className="text-[10px] font-bold text-[#147BFF] uppercase tracking-wider flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-[#147BFF]" />
+                  STAGE PITCH TIMER
+                </span>
 
-            {/* Large Digital Clock Readout */}
-            <div className="space-y-2 py-4">
-              <div
-                className={`text-6xl sm:text-7xl font-black font-mono tracking-widest leading-none ${
-                  isTimeUp
-                    ? 'text-rose-400'
-                    : timeLeft <= 60
-                    ? 'text-amber-400'
-                    : 'text-white'
-                }`}
-              >
-                {formatTime(timeLeft)}
+                <div className="flex items-center gap-1 text-[10px]">
+                  <span className="text-[#AAB4C3]">Beep at:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={warningMinutes}
+                    onChange={(e) => setWarningMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-10 bg-[#05070A] border border-[#1E293B] rounded text-center text-white font-bold py-0.5 focus:outline-none"
+                  />
+                  <span className="text-[#AAB4C3]">m</span>
+                </div>
               </div>
-              <p className="text-xs text-[#AAB4C3]">
-                {isTimeUp
-                  ? '⚠️ Presentation time limit reached!'
-                  : `Configured Duration: ${Math.floor(totalSeconds / 60)} Minutes`}
-              </p>
-            </div>
 
-            {/* Visual Progress Bar */}
-            <div className="w-full bg-[#05070A] h-3 rounded-full overflow-hidden border border-[#1E293B]">
-              <div
-                className={`h-full transition-all duration-1000 ${
-                  isTimeUp
-                    ? 'bg-rose-500'
-                    : timeLeft <= 60
-                    ? 'bg-amber-400'
-                    : 'bg-[#147BFF]'
-                }`}
-                style={{ width: `${progressPercent}%` }}
-              ></div>
-            </div>
+              {/* Digital Clock */}
+              <div className="flex items-center justify-between gap-6 px-2">
+                <div
+                  className={`text-4xl font-black font-mono tracking-widest ${
+                    isTimeUp
+                      ? 'text-rose-400'
+                      : timeLeft <= warningMinutes * 60
+                      ? 'text-amber-400'
+                      : 'text-white'
+                  }`}
+                >
+                  {formatTime(timeLeft)}
+                </div>
 
-            {/* Timer Play / Pause / Reset Controls */}
-            <div className="flex items-center justify-center gap-3">
-              <button
-                onClick={toggleTimer}
-                className={`py-3 px-6 font-bold text-xs text-white rounded-xl flex items-center gap-2 shadow-lg transition-all ${
-                  isRunning
-                    ? 'bg-amber-500 hover:bg-amber-600'
-                    : 'bg-[#147BFF] hover:bg-[#0062E6]'
-                }`}
-              >
-                {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                {isRunning ? 'PAUSE TIMER' : 'START TIMER'}
-              </button>
-
-              <button
-                onClick={resetTimer}
-                className="py-3 px-4 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] font-bold text-xs text-white rounded-xl flex items-center gap-1.5"
-              >
-                <RotateCcw className="w-4 h-4 text-[#147BFF]" />
-                RESET
-              </button>
-            </div>
-
-            {/* Adjust Time On the Fly (+1 min / -1 min) */}
-            <div className="flex items-center justify-center gap-2 pt-2 border-t border-[#1E293B]">
-              <button
-                onClick={() => addMinutes(-1)}
-                className="px-3 py-1.5 bg-[#05070A] hover:bg-[#071426] border border-[#1E293B] rounded-lg text-xs text-[#AAB4C3] flex items-center gap-1"
-              >
-                <Minus className="w-3 h-3" />
-                1 Min
-              </button>
-
-              <button
-                onClick={() => addMinutes(1)}
-                className="px-3 py-1.5 bg-[#05070A] hover:bg-[#071426] border border-[#1E293B] rounded-lg text-xs text-[#147BFF] flex items-center gap-1 font-bold"
-              >
-                <Plus className="w-3 h-3" />
-                1 Min
-              </button>
-            </div>
-
-            {/* Custom Presets & Custom Input */}
-            <div className="space-y-3 pt-2 text-left">
-              <span className="text-[10px] font-bold text-[#AAB4C3] uppercase block">PRESET DURATIONS</span>
-              <div className="grid grid-cols-4 gap-2">
-                {[3, 5, 7, 10].map((mins) => (
+                <div className="flex items-center gap-2">
                   <button
-                    key={mins}
-                    onClick={() => setPresetMinutes(mins)}
-                    className={`py-2 text-xs font-bold rounded-lg border transition-all ${
-                      Math.floor(totalSeconds / 60) === mins
-                        ? 'bg-[#147BFF] text-white border-[#147BFF]'
-                        : 'bg-[#05070A] text-[#AAB4C3] border-[#1E293B] hover:text-white'
+                    onClick={toggleTimer}
+                    className={`p-2.5 rounded-xl font-bold text-xs text-white shadow transition-all ${
+                      isRunning ? 'bg-amber-500 hover:bg-amber-600' : 'bg-[#147BFF] hover:bg-[#0062E6]'
                     }`}
                   >
-                    {mins} MINS
+                    {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                   </button>
-                ))}
+
+                  <button
+                    onClick={resetTimer}
+                    className="p-2.5 bg-[#05070A] hover:bg-[#0B1F3A] border border-[#1E293B] text-xs font-bold text-white rounded-xl"
+                  >
+                    <RotateCcw className="w-4 h-4 text-[#147BFF]" />
+                  </button>
+                </div>
               </div>
 
-              {/* Custom Minutes Field */}
-              <div className="flex gap-2 pt-1">
-                <input
-                  type="number"
-                  min="1"
-                  max="60"
-                  value={customMinutesInput}
-                  onChange={(e) => setCustomMinutesInput(e.target.value)}
-                  placeholder="Custom Mins"
-                  className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                />
-                <button
-                  onClick={handleCustomTimerSet}
-                  className="px-4 py-2 bg-[#071426] border border-[#147BFF]/40 text-xs font-bold text-[#147BFF] rounded-xl shrink-0"
-                >
-                  SET CUSTOM
-                </button>
+              {/* Overlay Progress Bar */}
+              <div className="w-full bg-[#05070A] h-2 rounded-full overflow-hidden border border-[#1E293B]">
+                <div
+                  className={`h-full transition-all duration-1000 ${
+                    isTimeUp ? 'bg-rose-500' : timeLeft <= warningMinutes * 60 ? 'bg-amber-400' : 'bg-[#147BFF]'
+                  }`}
+                  style={{ width: `${progressPercent}%` }}
+                ></div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        /* SPLIT DASHBOARD VIEW (Side-by-side player & full control panel) */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          {/* Left 7 Cols: Presentation Viewer */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="glass-panel p-6 rounded-3xl border border-[#147BFF]/30 space-y-4">
+              <h3 className="text-sm font-bold uppercase text-white flex items-center gap-2">
+                <Presentation className="w-4 h-4 text-[#147BFF]" />
+                PRESENTATION PLAYER ({team.name})
+              </h3>
+
+              {team.presentationUrl ? (
+                <div className="w-full h-[520px] bg-black rounded-2xl border border-[#1E293B] overflow-hidden">
+                  {team.presentationUrl.startsWith('data:application/pdf') || team.presentationUrl.endsWith('.pdf') ? (
+                    <iframe
+                      src={`${team.presentationUrl}#toolbar=1&navpanes=0`}
+                      className="w-full h-full border-0 bg-white"
+                      title="PDF Deck"
+                    />
+                  ) : (
+                    <SlideDeckPresenter
+                      fileName={team.presentationFileName || 'Pitch_Deck.pptx'}
+                      fileUrl={team.presentationUrl}
+                      teamName={team.name}
+                      college={team.college}
+                    />
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-[#AAB4C3]">No presentation deck uploaded for this team.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Right 5 Cols: Full Controls & Custom Beep Settings Panel */}
+          <div className="lg:col-span-5 space-y-6">
+            <div
+              className={`glass-panel p-6 rounded-3xl border transition-all space-y-6 text-center ${
+                isTimeUp
+                  ? 'border-rose-500 bg-rose-500/10 animate-pulse'
+                  : timeLeft <= warningMinutes * 60
+                  ? 'border-amber-500/50 bg-amber-500/5'
+                  : 'border-[#147BFF]/40'
+              }`}
+            >
+              <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
+                <span className="text-xs font-bold text-[#147BFF] uppercase tracking-wider flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-[#147BFF]" />
+                  STAGE PITCH TIMER & BEEP SETTINGS
+                </span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                  isTimeUp ? 'bg-rose-500 text-white' : isRunning ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#0B1F3A] text-[#AAB4C3]'
+                }`}>
+                  {isTimeUp ? 'TIME EXPIRED!' : isRunning ? 'TIMING LIVE' : 'PAUSED'}
+                </span>
+              </div>
+
+              {/* Large Clock */}
+              <div className="space-y-2 py-2">
+                <div
+                  className={`text-6xl font-black font-mono tracking-widest ${
+                    isTimeUp ? 'text-rose-400' : timeLeft <= warningMinutes * 60 ? 'text-amber-400' : 'text-white'
+                  }`}
+                >
+                  {formatTime(timeLeft)}
+                </div>
+                <p className="text-xs text-[#AAB4C3]">
+                  Configured Duration: {Math.floor(totalSeconds / 60)} Minutes
+                </p>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="w-full bg-[#05070A] h-3 rounded-full overflow-hidden border border-[#1E293B]">
+                <div
+                  className={`h-full transition-all duration-1000 ${
+                    isTimeUp ? 'bg-rose-500' : timeLeft <= warningMinutes * 60 ? 'bg-amber-400' : 'bg-[#147BFF]'
+                  }`}
+                  style={{ width: `${progressPercent}%` }}
+                ></div>
+              </div>
+
+              {/* Start / Pause / Reset */}
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={toggleTimer}
+                  className={`py-3 px-6 font-bold text-xs text-white rounded-xl flex items-center gap-2 shadow-lg transition-all ${
+                    isRunning ? 'bg-amber-500 hover:bg-amber-600' : 'bg-[#147BFF] hover:bg-[#0062E6]'
+                  }`}
+                >
+                  {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  {isRunning ? 'PAUSE TIMER' : 'START TIMER'}
+                </button>
+
+                <button
+                  onClick={resetTimer}
+                  className="py-3 px-4 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] font-bold text-xs text-white rounded-xl flex items-center gap-1.5"
+                >
+                  <RotateCcw className="w-4 h-4 text-[#147BFF]" />
+                  RESET
+                </button>
+              </div>
+
+              {/* Custom Beep Warning Setting Card */}
+              <div className="p-4 bg-[#05070A] border border-[#1E293B] rounded-2xl text-left space-y-3">
+                <div className="flex items-center justify-between border-b border-[#1E293B] pb-2">
+                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <BellRing className="w-4 h-4 text-[#147BFF]" />
+                    CUSTOM AUDIO BEEP WARNING THRESHOLD
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[#AAB4C3]">Trigger Beep Alarm At:</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={warningMinutes}
+                      onChange={(e) => setWarningMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-16 bg-[#071426] border border-[#1E293B] rounded-lg text-center text-white font-bold py-1.5 focus:outline-none"
+                    />
+                    <span className="text-white font-bold">Min(s) Remaining</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Presets */}
+              <div className="space-y-3 text-left">
+                <span className="text-[10px] font-bold text-[#AAB4C3] uppercase block">PRESET DURATIONS</span>
+                <div className="grid grid-cols-4 gap-2">
+                  {[3, 5, 7, 10].map((mins) => (
+                    <button
+                      key={mins}
+                      onClick={() => setPresetMinutes(mins)}
+                      className={`py-2 text-xs font-bold rounded-lg border transition-all ${
+                        Math.floor(totalSeconds / 60) === mins
+                          ? 'bg-[#147BFF] text-white border-[#147BFF]'
+                          : 'bg-[#05070A] text-[#AAB4C3] border-[#1E293B] hover:text-white'
+                      }`}
+                    >
+                      {mins} MINS
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -561,9 +712,8 @@ function SlideDeckPresenter({
   college: string;
 }) {
   const [currentSlide, setCurrentSlide] = useState(1);
-  const totalSlides = 8; // Interactive presentation slide deck pages
+  const totalSlides = 8;
 
-  // Keyboard Arrow Key Navigation (Left / Right)
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
@@ -576,7 +726,6 @@ function SlideDeckPresenter({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Web Cloud Link Embed Player
   if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
     let embedSrc = fileUrl;
     if (fileUrl.includes('google.com/presentation')) {
@@ -612,23 +761,19 @@ function SlideDeckPresenter({
     );
   }
 
-  // Interactive HTML5 Slide Deck Presenter
   return (
-    <div className="flex-1 flex flex-col justify-between bg-[#05070A] p-6 relative overflow-hidden select-none">
-      
-      {/* Background Stage Canvas Glow */}
+    <div className="flex-1 flex flex-col justify-between bg-[#05070A] p-6 relative overflow-hidden select-none h-full">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gradient-to-br from-[#071426] via-[#05070A] to-[#0B1F3A] pointer-events-none"></div>
 
       {/* Slide Header Toolbar */}
       <div className="relative z-10 flex items-center justify-between border-b border-[#1E293B] pb-3 text-xs">
         <div className="flex items-center gap-2">
           <span className="px-2 py-0.5 bg-[#147BFF]/20 border border-[#147BFF]/40 text-[#147BFF] font-bold text-[10px] rounded uppercase">
-            POWERPOINT SLIDE PRESENTATION DECK
+            STAGE SLIDE PRESENTATION
           </span>
           <span className="text-[#AAB4C3] font-mono text-[11px]">{fileName}</span>
         </div>
 
-        {/* Slide Counter */}
         <div className="flex items-center gap-2">
           <span className="text-white font-bold font-mono">
             SLIDE <span className="text-[#147BFF]">{currentSlide}</span> OF {totalSlides}
@@ -638,7 +783,6 @@ function SlideDeckPresenter({
 
       {/* Slide Canvas Content Area */}
       <div className="relative z-10 my-auto py-8 text-center space-y-6 max-w-2xl mx-auto">
-        
         {currentSlide === 1 && (
           <div className="space-y-4 animate-fadeIn">
             <span className="text-xs font-bold uppercase tracking-widest text-[#147BFF]">SLIDE 1 • TITLE & COVER</span>
@@ -746,4 +890,3 @@ function SlideDeckPresenter({
     </div>
   );
 }
-
