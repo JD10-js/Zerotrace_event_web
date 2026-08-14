@@ -284,137 +284,175 @@ export default function LivePresentationClient({
   const prevTeam = currentIndex > 0 ? allTeams[currentIndex - 1] : null;
   const nextTeam = currentIndex < allTeams.length - 1 ? allTeams[currentIndex + 1] : null;
 
+  // Keyboard Arrow Key Listener for Slide Flipping (ArrowRight, ArrowLeft, Space, PageDown, PageUp)
+  useEffect(() => {
+    function handleGlobalKeyDown(e: KeyboardEvent) {
+      // Don't intercept if typing in an input or textarea
+      const targetTag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      if (targetTag === 'input' || targetTag === 'textarea' || targetTag === 'select') {
+        return;
+      }
+
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        // Try focusing presentation iframe if present
+        const iframe = document.querySelector('iframe');
+        if (iframe && iframe.contentWindow) {
+          try {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.postMessage('next', '*');
+          } catch (err) {}
+        }
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        const iframe = document.querySelector('iframe');
+        if (iframe && iframe.contentWindow) {
+          try {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.postMessage('prev', '*');
+          } catch (err) {}
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
   return (
-    <div ref={containerRef} className="space-y-6 max-w-[1600px] mx-auto relative min-h-screen pb-24">
+    <div ref={containerRef} className={`space-y-6 max-w-[1600px] mx-auto relative min-h-screen ${isFullscreen ? 'bg-black p-0 m-0 w-screen h-screen overflow-hidden' : 'pb-24'}`}>
       
-      {/* Top Controls & Navigation Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 glass-panel p-4 rounded-2xl border border-[#1E293B]">
-        <div className="flex items-center gap-3">
-          <Link
-            href={`/admin/teams/${team.teamId}`}
-            className="p-2 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] rounded-xl text-[#147BFF] text-xs font-bold flex items-center gap-1"
-          >
-            ← Back to Team
-          </Link>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-[#147BFF]">{team.teamId}</span>
-              <span className="text-[10px] bg-[#147BFF]/20 text-[#147BFF] px-2 py-0.5 rounded font-bold uppercase">
-                {team.name}
-              </span>
+      {/* Top Controls & Navigation Header (Hidden in Pure Fullscreen Stage Mode) */}
+      {!isFullscreen && (
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 glass-panel p-4 rounded-2xl border border-[#1E293B]">
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/admin/teams/${team.teamId}`}
+              className="p-2 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] rounded-xl text-[#147BFF] text-xs font-bold flex items-center gap-1"
+            >
+              ← Back to Team
+            </Link>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold text-[#147BFF]">{team.teamId}</span>
+                <span className="text-[10px] bg-[#147BFF]/20 text-[#147BFF] px-2 py-0.5 rounded font-bold uppercase">
+                  {team.name}
+                </span>
+              </div>
+              <h1 className="text-lg font-black text-white">{team.college}</h1>
             </div>
-            <h1 className="text-lg font-black text-white">{team.college}</h1>
-          </div>
-        </div>
-
-        {/* Layout Switcher & Audio & Fullscreen Bar */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* View Mode Switcher */}
-          <div className="bg-[#05070A] p-1 rounded-xl border border-[#1E293B] flex items-center gap-1">
-            <button
-              onClick={() => setLayoutMode('stage')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                layoutMode === 'stage'
-                  ? 'bg-[#147BFF] text-white shadow'
-                  : 'text-[#AAB4C3] hover:text-white'
-              }`}
-            >
-              <Presentation className="w-3.5 h-3.5" />
-              Stage Presentation (Full PPT)
-            </button>
-            <button
-              onClick={() => setLayoutMode('split')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                layoutMode === 'split'
-                  ? 'bg-[#147BFF] text-white shadow'
-                  : 'text-[#AAB4C3] hover:text-white'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              Split View
-            </button>
           </div>
 
-          {/* Sound Toggle & Test */}
-          <button
-            onClick={() => setAudioEnabled(!audioEnabled)}
-            className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1 ${
-              audioEnabled
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-            }`}
-          >
-            {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            {audioEnabled ? 'Sound On' : 'Muted'}
-          </button>
+          {/* Layout Switcher & Audio & Fullscreen Bar */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* View Mode Switcher */}
+            <div className="bg-[#05070A] p-1 rounded-xl border border-[#1E293B] flex items-center gap-1">
+              <button
+                onClick={() => setLayoutMode('stage')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  layoutMode === 'stage'
+                    ? 'bg-[#147BFF] text-white shadow'
+                    : 'text-[#AAB4C3] hover:text-white'
+                }`}
+              >
+                <Presentation className="w-3.5 h-3.5" />
+                Stage Presentation (Full PPT)
+              </button>
+              <button
+                onClick={() => setLayoutMode('split')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  layoutMode === 'split'
+                    ? 'bg-[#147BFF] text-white shadow'
+                    : 'text-[#AAB4C3] hover:text-white'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                Split View
+              </button>
+            </div>
 
-          <button
-            onClick={() => playBeepSound('test')}
-            className="p-2 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] text-xs font-bold text-[#147BFF] rounded-xl flex items-center gap-1"
-          >
-            <BellRing className="w-3.5 h-3.5" />
-            Test Beep
-          </button>
-
-          {/* Next / Previous Team */}
-          {prevTeam && (
-            <Link
-              href={`/admin/present/${prevTeam.teamId}`}
-              className="p-2 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] rounded-xl text-xs font-bold text-white flex items-center gap-1"
+            {/* Sound Toggle & Test */}
+            <button
+              onClick={() => setAudioEnabled(!audioEnabled)}
+              className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1 ${
+                audioEnabled
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+              }`}
             >
-              <ChevronLeft className="w-4 h-4 text-[#147BFF]" />
-              Prev
-            </Link>
-          )}
+              {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              {audioEnabled ? 'Sound On' : 'Muted'}
+            </button>
 
-          {nextTeam && (
-            <Link
-              href={`/admin/present/${nextTeam.teamId}`}
-              className="p-2 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] rounded-xl text-xs font-bold text-white flex items-center gap-1"
+            <button
+              onClick={() => playBeepSound('test')}
+              className="p-2 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] text-xs font-bold text-[#147BFF] rounded-xl flex items-center gap-1"
             >
-              Next
-              <ChevronRight className="w-4 h-4 text-[#147BFF]" />
-            </Link>
-          )}
+              <BellRing className="w-3.5 h-3.5" />
+              Test Beep
+            </button>
 
-          <button
-            onClick={toggleFullscreen}
-            className="p-2.5 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-xs text-white rounded-xl shadow flex items-center gap-1.5"
-          >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            {isFullscreen ? 'Exit Stage' : 'Stage Fullscreen'}
-          </button>
+            {/* Next / Previous Team */}
+            {prevTeam && (
+              <Link
+                href={`/admin/present/${prevTeam.teamId}`}
+                className="p-2 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] rounded-xl text-xs font-bold text-white flex items-center gap-1"
+              >
+                <ChevronLeft className="w-4 h-4 text-[#147BFF]" />
+                Prev
+              </Link>
+            )}
+
+            {nextTeam && (
+              <Link
+                href={`/admin/present/${nextTeam.teamId}`}
+                className="p-2 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] rounded-xl text-xs font-bold text-white flex items-center gap-1"
+              >
+                Next
+                <ChevronRight className="w-4 h-4 text-[#147BFF]" />
+              </Link>
+            )}
+
+            <button
+              onClick={toggleFullscreen}
+              className="p-2.5 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-xs text-white rounded-xl shadow flex items-center gap-1.5"
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              {isFullscreen ? 'Exit Stage' : 'Pure Fullscreen PPT'}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* STAGE PRESENTATION MODE (Full-Screen Presentation + Floating Small Timer Box Overlay) */}
       {layoutMode === 'stage' ? (
-        <div className="space-y-6">
+        <div className={isFullscreen ? 'w-screen h-screen relative bg-black p-0 m-0' : 'space-y-6'}>
           {/* Main Full-Width Stage Presentation View */}
-          <div className="glass-panel p-6 rounded-3xl border border-[#147BFF]/30 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
-              <h3 className="text-sm font-bold uppercase text-white flex items-center gap-2">
-                <Presentation className="w-4 h-4 text-[#147BFF]" />
-                STAGE PRESENTATION DECK ({team.name})
-              </h3>
-              {team.presentationUrl && (
-                <button
-                  onClick={handleRemovePresentation}
-                  className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Remove Deck
-                </button>
-              )}
-            </div>
+          <div className={isFullscreen ? 'w-full h-full bg-black p-0 border-0 rounded-none' : 'glass-panel p-6 rounded-3xl border border-[#147BFF]/30 space-y-4'}>
+            {!isFullscreen && (
+              <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
+                <h3 className="text-sm font-bold uppercase text-white flex items-center gap-2">
+                  <Presentation className="w-4 h-4 text-[#147BFF]" />
+                  STAGE PRESENTATION DECK ({team.name})
+                </h3>
+                {team.presentationUrl && (
+                  <button
+                    onClick={handleRemovePresentation}
+                    className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Remove Deck
+                  </button>
+                )}
+              </div>
+            )}
 
             {team.presentationUrl ? (
-              <div className="w-full h-[650px] bg-black rounded-2xl border border-[#147BFF]/40 overflow-hidden shadow-2xl">
+              <div className={isFullscreen ? 'w-screen h-screen bg-black border-0 rounded-none overflow-hidden relative' : 'w-full h-[650px] bg-black rounded-2xl border border-[#147BFF]/40 overflow-hidden shadow-2xl relative'}>
                 {team.presentationUrl.startsWith('data:application/pdf') || team.presentationUrl.endsWith('.pdf') ? (
                   <iframe
                     src={`${team.presentationUrl}#toolbar=1&navpanes=0`}
                     className="w-full h-full border-0 bg-white"
                     title="PDF Stage Presentation"
+                    onClick={(e) => e.currentTarget.focus()}
                   />
                 ) : (
                   <SlideDeckPresenter
@@ -469,41 +507,50 @@ export default function LivePresentationClient({
           </div>
 
           {/* FLOATING SMALL TIMER OVERLAY WIDGET AT BOTTOM RIGHT */}
-          <div className="fixed bottom-6 right-6 z-50 shadow-2xl animate-fadeIn">
+          <div className="fixed bottom-6 right-6 z-[10000] shadow-2xl animate-fadeIn">
             <div
-              className={`p-4 rounded-2xl border backdrop-blur-xl transition-all space-y-3 ${
+              className={`p-3.5 rounded-2xl border backdrop-blur-xl transition-all space-y-2.5 ${
                 isTimeUp
-                  ? 'bg-rose-950/90 border-rose-500 animate-pulse'
+                  ? 'bg-rose-950/95 border-rose-500 animate-pulse shadow-rose-500/20'
                   : timeLeft <= warningMinutes * 60
-                  ? 'bg-amber-950/90 border-amber-500'
-                  : 'bg-[#071426]/95 border-[#147BFF]/50'
+                  ? 'bg-amber-950/95 border-amber-500 shadow-amber-500/20'
+                  : 'bg-[#071426]/95 border-[#147BFF]/60 shadow-xl'
               }`}
             >
               {/* Overlay Header */}
-              <div className="flex items-center justify-between gap-4 border-b border-[#1E293B] pb-2">
+              <div className="flex items-center justify-between gap-3 border-b border-[#1E293B] pb-1.5">
                 <span className="text-[10px] font-bold text-[#147BFF] uppercase tracking-wider flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5 text-[#147BFF]" />
-                  STAGE PITCH TIMER
+                  TIMER
                 </span>
 
+                {isFullscreen && (
+                  <button
+                    onClick={toggleFullscreen}
+                    className="text-[10px] bg-[#05070A] hover:bg-[#0B1F3A] border border-[#1E293B] px-2 py-0.5 rounded text-white font-bold"
+                  >
+                    Exit Stage ✕
+                  </button>
+                )}
+
                 <div className="flex items-center gap-1 text-[10px]">
-                  <span className="text-[#AAB4C3]">Beep at:</span>
+                  <span className="text-[#AAB4C3]">Beep:</span>
                   <input
                     type="number"
                     min="1"
                     max="10"
                     value={warningMinutes}
                     onChange={(e) => setWarningMinutes(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-10 bg-[#05070A] border border-[#1E293B] rounded text-center text-white font-bold py-0.5 focus:outline-none"
+                    className="w-8 bg-[#05070A] border border-[#1E293B] rounded text-center text-white font-bold py-0.5 focus:outline-none text-[10px]"
                   />
                   <span className="text-[#AAB4C3]">m</span>
                 </div>
               </div>
 
               {/* Digital Clock */}
-              <div className="flex items-center justify-between gap-6 px-2">
+              <div className="flex items-center justify-between gap-4 px-1">
                 <div
-                  className={`text-4xl font-black font-mono tracking-widest ${
+                  className={`text-3xl font-black font-mono tracking-widest ${
                     isTimeUp
                       ? 'text-rose-400'
                       : timeLeft <= warningMinutes * 60
@@ -514,27 +561,27 @@ export default function LivePresentationClient({
                   {formatTime(timeLeft)}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <button
                     onClick={toggleTimer}
-                    className={`p-2.5 rounded-xl font-bold text-xs text-white shadow transition-all ${
+                    className={`p-2 rounded-xl font-bold text-xs text-white shadow transition-all ${
                       isRunning ? 'bg-amber-500 hover:bg-amber-600' : 'bg-[#147BFF] hover:bg-[#0062E6]'
                     }`}
                   >
-                    {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    {isRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                   </button>
 
                   <button
                     onClick={resetTimer}
-                    className="p-2.5 bg-[#05070A] hover:bg-[#0B1F3A] border border-[#1E293B] text-xs font-bold text-white rounded-xl"
+                    className="p-2 bg-[#05070A] hover:bg-[#0B1F3A] border border-[#1E293B] text-xs font-bold text-white rounded-xl"
                   >
-                    <RotateCcw className="w-4 h-4 text-[#147BFF]" />
+                    <RotateCcw className="w-3.5 h-3.5 text-[#147BFF]" />
                   </button>
                 </div>
               </div>
 
               {/* Overlay Progress Bar */}
-              <div className="w-full bg-[#05070A] h-2 rounded-full overflow-hidden border border-[#1E293B]">
+              <div className="w-full bg-[#05070A] h-1.5 rounded-full overflow-hidden border border-[#1E293B]">
                 <div
                   className={`h-full transition-all duration-1000 ${
                     isTimeUp ? 'bg-rose-500' : timeLeft <= warningMinutes * 60 ? 'bg-amber-400' : 'bg-[#147BFF]'
