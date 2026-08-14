@@ -184,6 +184,7 @@ export default function TeamDetailClient({ team, admin }: { team: any; admin: an
     name: team.name,
     college: team.college,
     leaderName: team.leaderName,
+    leaderEmail: team.leaderEmail,
     memberCount: 1 + team.members.length,
     status: team.status,
     verificationToken: team.verificationToken,

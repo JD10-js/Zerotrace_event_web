@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Mail, CheckCircle2 } from 'lucide-react';
+import { Download, Mail, CheckCircle2, Copy, ExternalLink, Send } from 'lucide-react';
 import { generateQrCodeDataUrl } from '@/lib/qrcode';
 import { generateTicketPdf, TicketData } from '@/lib/ticket-generator';
 import { resendTicketEmailAction } from '@/actions/team-actions';
@@ -11,6 +11,10 @@ export default function TicketCard({ data }: { data: TicketData }) {
   const [qrUrl, setQrUrl] = useState<string>('');
   const [emailing, setEmailing] = useState(false);
   const [emailSentMsg, setEmailSentMsg] = useState('');
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const appUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+  const ticketPassUrl = `${appUrl}/register/success/${data.teamId}`;
 
   useEffect(() => {
     generateQrCodeDataUrl(data.verificationToken).then((url) => setQrUrl(url));
@@ -28,10 +32,24 @@ export default function TicketCard({ data }: { data: TicketData }) {
     setEmailing(false);
 
     if (res.success) {
-      setEmailSentMsg('Ticket email sent successfully!');
+      setEmailSentMsg('Ticket email sent via SMTP server!');
     } else {
       setEmailSentMsg(res.error || 'Email failed.');
     }
+  }
+
+  function handleOpenMailClient() {
+    const subject = encodeURIComponent(`Entry Ticket Pass - ${data.teamId} | EUREKA! 2026`);
+    const body = encodeURIComponent(
+      `Hello ${data.leaderName},\n\nHere is your official Entry Ticket Pass for team ${data.name} (${data.teamId}) at EUREKA! – Road To Enterprise 2026.\n\nAccess your Ticket & QR Code here:\n${ticketPassUrl}\n\nPlease present this ticket pass at the venue entrance.\n\nBest regards,\nZeroTrace Organizing Team`
+    );
+    window.location.href = `mailto:${data.leaderEmail}?subject=${subject}&body=${body}`;
+  }
+
+  function handleCopyTicketLink() {
+    navigator.clipboard.writeText(ticketPassUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 3000);
   }
 
   return (
@@ -70,12 +88,12 @@ export default function TicketCard({ data }: { data: TicketData }) {
             <span className="font-bold text-white text-right">{data.name}</span>
           </div>
           <div className="flex justify-between border-b border-[#1E293B] pb-2">
-            <span className="text-[#AAB4C3]">College / Institution:</span>
-            <span className="font-semibold text-white text-right max-w-[200px] truncate">{data.college}</span>
-          </div>
-          <div className="flex justify-between border-b border-[#1E293B] pb-2">
             <span className="text-[#AAB4C3]">Team Leader:</span>
             <span className="font-medium text-white">{data.leaderName}</span>
+          </div>
+          <div className="flex justify-between border-b border-[#1E293B] pb-2">
+            <span className="text-[#AAB4C3]">Leader Email:</span>
+            <span className="font-mono text-white text-right max-w-[180px] truncate">{data.leaderEmail}</span>
           </div>
           <div className="flex justify-between border-b border-[#1E293B] pb-2">
             <span className="text-[#AAB4C3]">Total Members:</span>
@@ -122,17 +140,36 @@ export default function TicketCard({ data }: { data: TicketData }) {
           DOWNLOAD ENTRY TICKET (PDF)
         </button>
 
+        {/* Open in Mail App (Guaranteed 1-Click Emailing on any device!) */}
+        <button
+          onClick={handleOpenMailClient}
+          className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 font-bold text-xs text-white rounded-xl flex items-center justify-center gap-2 shadow transition-all"
+        >
+          <Send className="w-4 h-4" />
+          OPEN IN MAIL APP (DIRECT EMAIL TO {data.leaderEmail})
+        </button>
+
+        {/* Send via Server SMTP */}
         <button
           onClick={handleEmailTicket}
           disabled={emailing}
-          className="w-full py-3 px-4 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] hover:border-[#147BFF]/50 font-semibold text-xs text-white rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+          className="w-full py-2.5 px-4 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] hover:border-[#147BFF]/50 font-semibold text-xs text-white rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
         >
           <Mail className="w-4 h-4 text-[#147BFF]" />
-          {emailing ? 'SENDING EMAIL...' : 'EMAIL TICKET PASS TO LEADER'}
+          {emailing ? 'SENDING EMAIL...' : 'SEND TICKET VIA SMTP SERVER'}
+        </button>
+
+        {/* Copy Pass Link */}
+        <button
+          onClick={handleCopyTicketLink}
+          className="w-full py-2.5 px-4 bg-[#05070A] hover:bg-[#071426] border border-[#1E293B] font-semibold text-xs text-[#AAB4C3] hover:text-white rounded-xl flex items-center justify-center gap-2 transition-all"
+        >
+          <Copy className="w-4 h-4 text-[#147BFF]" />
+          {copiedLink ? '✓ TICKET LINK COPIED TO CLIPBOARD!' : 'COPY TICKET PASS LINK'}
         </button>
 
         {emailSentMsg && (
-          <p className="text-center text-xs text-emerald-400 font-medium">{emailSentMsg}</p>
+          <p className="text-center text-xs text-emerald-400 font-medium bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">{emailSentMsg}</p>
         )}
       </div>
     </div>

@@ -6,6 +6,7 @@ export interface TicketData {
   name: string;
   college: string;
   leaderName: string;
+  leaderEmail?: string;
   memberCount: number;
   status: string;
   verificationToken: string;

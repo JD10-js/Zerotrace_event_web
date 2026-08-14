@@ -26,6 +26,13 @@ export default function SettingsClient({
   const [importantDates, setImportantDates] = useState(initialSettings.importantDates || 'Registration Closes: March 1, 2026');
   const [contactEmail, setContactEmail] = useState(initialSettings.contactEmail || 'contact@zerotrace.org');
 
+  // SMTP Email Server settings
+  const [smtpHost, setSmtpHost] = useState(initialSettings.SMTP_HOST || '');
+  const [smtpPort, setSmtpPort] = useState(initialSettings.SMTP_PORT || '587');
+  const [smtpUser, setSmtpUser] = useState(initialSettings.SMTP_USER || '');
+  const [smtpPass, setSmtpPass] = useState(initialSettings.SMTP_PASS || '');
+  const [smtpFrom, setSmtpFrom] = useState(initialSettings.SMTP_FROM || 'ZeroTrace <noreply@zerotrace.org>');
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -43,11 +50,16 @@ export default function SettingsClient({
       eventDate,
       importantDates,
       contactEmail,
+      SMTP_HOST: smtpHost.trim(),
+      SMTP_PORT: smtpPort.trim(),
+      SMTP_USER: smtpUser.trim(),
+      SMTP_PASS: smtpPass.trim(),
+      SMTP_FROM: smtpFrom.trim(),
     });
 
     setLoading(false);
     if (res.success) {
-      setMsg('Event settings updated successfully!');
+      setMsg('Event & Email settings updated successfully!');
     } else {
       setMsg(res.error || 'Failed to save settings.');
     }
@@ -204,13 +216,78 @@ export default function SettingsClient({
           </div>
         </div>
 
+        {/* Section 4: SMTP Email Server Credentials */}
+        <div className="space-y-4 pt-2 border-t border-[#1E293B]">
+          <h3 className="text-xs font-bold text-[#147BFF] uppercase tracking-wider border-b border-[#1E293B] pb-2 flex items-center justify-between">
+            <span>SMTP EMAIL SERVER CREDENTIALS (FOR OUTGOING TICKETS)</span>
+            <span className="text-[10px] text-[#AAB4C3] font-normal uppercase">OPTIONAL • FOR DIRECT AUTOMATED EMAILS</span>
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div>
+              <label className="text-[#AAB4C3] block mb-1 font-semibold">SMTP HOST (e.g. smtp.gmail.com)</label>
+              <input
+                type="text"
+                value={smtpHost}
+                onChange={(e) => setSmtpHost(e.target.value)}
+                placeholder="smtp.gmail.com or smtp.mailtrap.io"
+                className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl px-4 py-2.5 text-white"
+              />
+            </div>
+
+            <div>
+              <label className="text-[#AAB4C3] block mb-1 font-semibold">SMTP PORT (587 or 465)</label>
+              <input
+                type="text"
+                value={smtpPort}
+                onChange={(e) => setSmtpPort(e.target.value)}
+                placeholder="587"
+                className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl px-4 py-2.5 text-white"
+              />
+            </div>
+
+            <div>
+              <label className="text-[#AAB4C3] block mb-1 font-semibold">SMTP USERNAME / EMAIL</label>
+              <input
+                type="text"
+                value={smtpUser}
+                onChange={(e) => setSmtpUser(e.target.value)}
+                placeholder="your.email@gmail.com"
+                className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl px-4 py-2.5 text-white"
+              />
+            </div>
+
+            <div>
+              <label className="text-[#AAB4C3] block mb-1 font-semibold">SMTP PASSWORD / APP PASSWORD</label>
+              <input
+                type="password"
+                value={smtpPass}
+                onChange={(e) => setSmtpPass(e.target.value)}
+                placeholder="••••••••••••"
+                className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl px-4 py-2.5 text-white"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="text-[#AAB4C3] block mb-1 font-semibold">SENDER FROM NAME & EMAIL</label>
+              <input
+                type="text"
+                value={smtpFrom}
+                onChange={(e) => setSmtpFrom(e.target.value)}
+                placeholder="ZeroTrace <noreply@zerotrace.org>"
+                className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl px-4 py-2.5 text-white"
+              />
+            </div>
+          </div>
+        </div>
+
         <button
           type="submit"
           disabled={loading}
           className="w-full py-3.5 px-6 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-xs text-white rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-[#147BFF]/20"
         >
           <Save className="w-4 h-4" />
-          {loading ? 'SAVING SETTINGS...' : 'SAVE EVENT SETTINGS'}
+          {loading ? 'SAVING SETTINGS...' : 'SAVE EVENT & EMAIL SETTINGS'}
         </button>
       </form>
     </div>
