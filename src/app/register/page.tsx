@@ -219,13 +219,14 @@ export default function RegisterPage() {
                 <p className="text-xs text-[#AAB4C3] mt-1">Provide institution and team identification.</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-[#AAB4C3] block mb-2">
+                  <label className="text-xs font-semibold text-[#AAB4C3] block mb-1.5">
                     TEAM NAME *
                   </label>
                   <input
                     type="text"
+                    required
                     value={teamName}
                     onChange={(e) => setTeamName(e.target.value)}
                     placeholder="e.g. Nexus Innovators"
@@ -234,43 +235,32 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-[#AAB4C3] block mb-2">
-                    COLLEGE / INSTITUTION *
+                  <label className="text-xs font-semibold text-[#AAB4C3] block mb-1.5">
+                    DEPARTMENT / BRANCH *
                   </label>
                   <input
                     type="text"
-                    value={college}
-                    onChange={(e) => setCollege(e.target.value)}
-                    placeholder="e.g. Stanford University"
-                    className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl px-4 py-3 text-sm text-white focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-[#AAB4C3] block mb-2">
-                    DEPARTMENT *
-                  </label>
-                  <input
-                    type="text"
+                    required
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    placeholder="e.g. Computer Science / Business"
+                    placeholder="e.g. Computer Science & Eng"
                     className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl px-4 py-3 text-sm text-white focus:outline-none"
                   />
                 </div>
+              </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-[#AAB4C3] block mb-2">
-                    CITY *
-                  </label>
-                  <input
-                    type="text"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="e.g. Palo Alto"
-                    className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl px-4 py-3 text-sm text-white focus:outline-none"
-                  />
-                </div>
+              <div>
+                <label className="text-xs font-semibold text-[#AAB4C3] block mb-1.5">
+                  CITY / LOCATION *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="e.g. Bangalore"
+                  className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl px-4 py-3 text-sm text-white focus:outline-none"
+                />
               </div>
             </div>
           )}

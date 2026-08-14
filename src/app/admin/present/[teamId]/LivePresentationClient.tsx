@@ -337,7 +337,7 @@ export default function LivePresentationClient({
                   {team.name}
                 </span>
               </div>
-              <h1 className="text-lg font-black text-white">{team.college}</h1>
+              <h1 className="text-lg font-black text-white">{team.department}</h1>
             </div>
           </div>
 
@@ -447,19 +447,18 @@ export default function LivePresentationClient({
 
             {team.presentationUrl ? (
               <div className={isFullscreen ? 'w-screen h-screen bg-black border-0 rounded-none overflow-hidden relative' : 'w-full h-[650px] bg-black rounded-2xl border border-[#147BFF]/40 overflow-hidden shadow-2xl relative'}>
-                {team.presentationUrl.startsWith('data:application/pdf') || team.presentationUrl.endsWith('.pdf') ? (
+                {team.presentationUrl.startsWith('data:application/pdf') || team.presentationUrl.toLowerCase().includes('.pdf') || team.presentationUrl.toLowerCase().includes('pdf') ? (
                   <iframe
-                    src={`${team.presentationUrl}#toolbar=1&navpanes=0`}
+                    src={team.presentationUrl.startsWith('http') && team.presentationUrl.includes('drive.google.com') ? team.presentationUrl.replace('/view', '/preview').replace('/edit', '/preview') : `${team.presentationUrl}#toolbar=1&navpanes=0`}
                     className="w-full h-full border-0 bg-white"
                     title="PDF Stage Presentation"
-                    onClick={(e) => e.currentTarget.focus()}
                   />
                 ) : (
                   <SlideDeckPresenter
                     fileName={team.presentationFileName || 'Pitch_Deck.pptx'}
                     fileUrl={team.presentationUrl}
                     teamName={team.name}
-                    college={team.college}
+                    college={team.department}
                   />
                 )}
               </div>

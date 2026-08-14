@@ -73,7 +73,7 @@ export async function registerTeamAction(input: RegisterTeamInput) {
       data: {
         teamId,
         name: input.name.trim(),
-        college: input.college.trim(),
+        college: input.college.trim() || '',
         department: input.department.trim(),
         city: input.city.trim(),
         leaderName: input.leaderName.trim(),

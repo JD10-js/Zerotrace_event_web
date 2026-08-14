@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -11,11 +12,14 @@ import {
   UserCheck,
   FileText,
   Settings,
+  Menu,
+  X,
 } from 'lucide-react';
 import { AdminSession, hasPermission } from '@/lib/permissions';
 
 export default function AdminSidebar({ admin }: { admin: AdminSession }) {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems = [
     {
@@ -69,41 +73,61 @@ export default function AdminSidebar({ admin }: { admin: AdminSession }) {
   ];
 
   return (
-    <aside className="w-64 bg-[#05070A] border-r border-[#1E293B] min-h-[calc(100vh-73px)] p-4 flex flex-col justify-between">
-      <div className="space-y-6">
-        <div className="px-3 py-2">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#147BFF]">ADMIN NAVIGATION</p>
+    <>
+      {/* Mobile Ratio Menu Toggle Bar */}
+      <div className="md:hidden bg-[#071426] border-b border-[#1E293B] px-4 py-3 flex items-center justify-between">
+        <span className="text-xs font-bold text-[#147BFF] uppercase tracking-wider">ADMIN MENU</span>
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="p-2 bg-[#05070A] border border-[#1E293B] rounded-lg text-white font-bold flex items-center gap-1.5 text-xs"
+        >
+          {mobileOpen ? <X className="w-4 h-4 text-rose-400" /> : <Menu className="w-4 h-4 text-[#147BFF]" />}
+          {mobileOpen ? 'Close Menu' : 'Navigation Menu'}
+        </button>
+      </div>
+
+      {/* Sidebar Content */}
+      <aside
+        className={`${
+          mobileOpen ? 'block' : 'hidden md:flex'
+        } w-full md:w-64 bg-[#05070A] border-b md:border-b-0 md:border-r border-[#1E293B] md:min-h-[calc(100vh-73px)] p-4 flex-col justify-between shrink-0 transition-all`}
+      >
+        <div className="space-y-6">
+          <div className="px-3 py-2 hidden md:block">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#147BFF]">ADMIN NAVIGATION</p>
+          </div>
+
+          <nav className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-1 gap-1">
+            {navItems.map((item) => {
+              if (!hasPermission(admin, item.permission)) return null;
+
+              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+              const Icon = item.icon;
+
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all ${
+                    isActive
+                      ? 'bg-[#147BFF] text-white shadow-lg shadow-[#147BFF]/20'
+                      : 'text-[#AAB4C3] hover:text-white hover:bg-[#071426]'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-[#147BFF]'}`} />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
 
-        <nav className="space-y-1">
-          {navItems.map((item) => {
-            if (!hasPermission(admin, item.permission)) return null;
-            
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-            const Icon = item.icon;
-
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all ${
-                  isActive
-                    ? 'bg-[#147BFF] text-white shadow-lg shadow-[#147BFF]/20'
-                    : 'text-[#AAB4C3] hover:text-white hover:bg-[#071426]'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-[#147BFF]'}`} />
-                {item.name}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-
-      <div className="p-3 bg-[#071426] rounded-xl border border-[#1E293B] space-y-1">
-        <p className="text-[10px] font-semibold text-[#147BFF]">ZEROTRACE SECURE RBAC</p>
-        <p className="text-[11px] text-[#AAB4C3]">Logged in as <span className="text-white font-mono">{admin.email}</span></p>
-      </div>
-    </aside>
+        <div className="p-3 bg-[#071426] rounded-xl border border-[#1E293B] mt-6">
+          <p className="text-[10px] font-bold text-[#147BFF] uppercase">ZEROTRACE SECURE RBAC</p>
+          <p className="text-[11px] text-[#AAB4C3] truncate">Logged in as <strong className="text-white">{admin.email}</strong></p>
+        </div>
+      </aside>
+    </>
   );
 }

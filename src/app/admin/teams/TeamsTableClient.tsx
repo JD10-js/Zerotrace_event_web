@@ -39,7 +39,6 @@ export default function TeamsTableClient({
     const matchesSearch =
       team.teamId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      team.college.toLowerCase().includes(searchTerm.toLowerCase()) ||
       team.leaderName.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'ALL' || team.status === statusFilter;
@@ -102,7 +101,7 @@ export default function TeamsTableClient({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by Team ID, Team Name, College, or Leader Name..."
+            placeholder="Search by Team ID, Team Name, or Leader Name..."
             className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:outline-none"
           />
         </div>
@@ -134,12 +133,11 @@ export default function TeamsTableClient({
       {/* Data Table */}
       <div className="glass-panel rounded-2xl border border-[#1E293B] overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-[#AAB4C3]">
+          <table className="w-full text-left text-xs text-[#AAB4C3] min-w-[650px]">
             <thead className="bg-[#05070A] uppercase text-[10px] font-bold text-[#147BFF] border-b border-[#1E293B]">
               <tr>
                 <th className="p-4">Team ID</th>
                 <th className="p-4">Team Name</th>
-                <th className="p-4">College</th>
                 <th className="p-4">Leader</th>
                 <th className="p-4">Members</th>
                 <th className="p-4">Reg. Date</th>
@@ -153,7 +151,6 @@ export default function TeamsTableClient({
                 <tr key={team.id} className="hover:bg-[#071426]/50">
                   <td className="p-4 font-mono font-bold text-white">{team.teamId}</td>
                   <td className="p-4 font-bold text-white">{team.name}</td>
-                  <td className="p-4 max-w-[160px] truncate">{team.college}</td>
                   <td className="p-4">
                     <p className="font-medium text-white">{team.leaderName}</p>
                     <p className="text-[10px] text-[#AAB4C3]">{team.leaderEmail}</p>

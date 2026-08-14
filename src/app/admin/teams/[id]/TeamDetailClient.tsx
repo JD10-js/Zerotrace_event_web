@@ -256,10 +256,6 @@ export default function TeamDetailClient({ team, admin }: { team: any; admin: an
                 <p className="font-bold text-white text-sm mt-0.5">{team.name}</p>
               </div>
               <div>
-                <span className="text-[#AAB4C3]">College / Institution:</span>
-                <p className="font-semibold text-white mt-0.5">{team.college}</p>
-              </div>
-              <div>
                 <span className="text-[#AAB4C3]">Department:</span>
                 <p className="font-medium text-white mt-0.5">{team.department}</p>
               </div>
