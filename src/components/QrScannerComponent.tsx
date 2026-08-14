@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { QrCode, Search, CheckCircle2, AlertTriangle, XCircle, RefreshCw } from 'lucide-react';
+import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
+import { QrCode, Search, CheckCircle2, AlertTriangle, XCircle, RefreshCw, Camera, Image as ImageIcon, Play, Pause } from 'lucide-react';
 import { verifyTokenAction, confirmCheckInAction } from '@/actions/checkin-actions';
 import StatusBadge from './StatusBadge';
 
@@ -17,8 +17,22 @@ export default function QrScannerComponent({ isAdmin = false }: QrScannerCompone
   const [scanResult, setScanResult] = useState<any>(null);
   const [checkInSuccess, setCheckInSuccess] = useState<any>(null);
   const [scannerActive, setScannerActive] = useState(true);
+  const [cameraDevices, setCameraDevices] = useState<Array<{ id: string; label: string }>>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string>('');
 
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+
+  // Detect available camera devices
+  useEffect(() => {
+    Html5Qrcode.getCameras()
+      .then((devices) => {
+        if (devices && devices.length > 0) {
+          setCameraDevices(devices);
+          setSelectedCameraId(devices[0].id);
+        }
+      })
+      .catch((err) => console.log('Camera enumeration notice:', err));
+  }, []);
 
   useEffect(() => {
     if (scannerActive) {
@@ -106,27 +120,62 @@ export default function QrScannerComponent({ isAdmin = false }: QrScannerCompone
       
       {/* Scanner & Search Toggle Container */}
       <div className="glass-panel p-6 rounded-2xl border border-[#147BFF]/30 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <QrCode className="w-5 h-5 text-[#147BFF]" />
-            <h3 className="text-base font-bold text-white uppercase tracking-wide">
-              {isAdmin ? 'ADMIN QR CHECK-IN SCANNER' : 'ENTRY TICKET VERIFICATION'}
-            </h3>
+        {/* Scanner Header & Camera Selection Toolbar */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-[#147BFF]" />
+              <h3 className="text-base font-bold text-white uppercase tracking-wide">
+                {isAdmin ? 'ADMIN QR CHECK-IN SCANNER' : 'ENTRY TICKET VERIFICATION'}
+              </h3>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setScannerActive(!scannerActive)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                  scannerActive
+                    ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                    : 'bg-[#147BFF] text-white shadow'
+                }`}
+              >
+                {scannerActive ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                {scannerActive ? 'Pause Camera' : '🎥 Start Camera Scanner'}
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => setScannerActive(!scannerActive)}
-            className="text-xs text-[#147BFF] hover:underline"
-          >
-            {scannerActive ? 'Pause Camera' : 'Activate Camera'}
-          </button>
+
+          {/* Camera Device Switcher Dropdown (If multiple cameras detected) */}
+          {cameraDevices.length > 0 && scannerActive && (
+            <div className="flex items-center gap-2 bg-[#05070A] p-2 rounded-xl border border-[#1E293B] text-xs">
+              <Camera className="w-4 h-4 text-[#147BFF] shrink-0" />
+              <span className="text-[#AAB4C3] shrink-0">Select Camera:</span>
+              <select
+                value={selectedCameraId}
+                onChange={(e) => {
+                  setSelectedCameraId(e.target.value);
+                  // Refresh scanner with selected camera
+                  setScannerActive(false);
+                  setTimeout(() => setScannerActive(true), 200);
+                }}
+                className="bg-[#071426] text-white border border-[#1E293B] rounded-lg px-2 py-1 text-xs focus:outline-none flex-1"
+              >
+                {cameraDevices.map((device) => (
+                  <option key={device.id} value={device.id}>
+                    {device.label || `Camera ${device.id.slice(0, 5)}...`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Live HTML5 Camera Scanner Area */}
         {scannerActive && (
-          <div className="bg-[#05070A] p-4 rounded-xl border border-[#1E293B] overflow-hidden">
+          <div className="bg-[#05070A] p-4 rounded-xl border border-[#147BFF]/40 overflow-hidden relative">
             <div id="reader" className="w-full"></div>
             <p className="text-center text-xs text-[#AAB4C3] mt-3">
-              Point your camera at the entry ticket QR code to verify.
+              Point device camera at entry ticket QR code, or select camera above.
             </p>
           </div>
         )}

@@ -527,9 +527,10 @@ export default function LivePresentationClient({
                 {isFullscreen && (
                   <button
                     onClick={toggleFullscreen}
-                    className="text-[10px] bg-[#05070A] hover:bg-[#0B1F3A] border border-[#1E293B] px-2 py-0.5 rounded text-white font-bold"
+                    title="Exit Stage Fullscreen"
+                    className="w-6 h-6 rounded-lg bg-[#05070A] hover:bg-rose-500/20 border border-[#1E293B] hover:border-rose-500/40 text-[#AAB4C3] hover:text-rose-400 font-bold text-xs flex items-center justify-center transition-all"
                   >
-                    Exit Stage ✕
+                    ✕
                   </button>
                 )}
 
