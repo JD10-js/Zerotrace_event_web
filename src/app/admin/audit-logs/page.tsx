@@ -32,13 +32,13 @@ export default async function AuditLogsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#05070A] text-white flex flex-col">
+    <div className="min-h-screen bg-[#05070A] text-white flex flex-col w-full max-w-full overflow-x-hidden">
       <AdminNavbar admin={admin} />
 
-      <div className="flex flex-1">
+      <div className="flex flex-1 flex-col md:flex-row w-full max-w-full overflow-x-hidden">
         <AdminSidebar admin={admin} />
 
-        <main className="flex-1 p-8 space-y-6 overflow-y-auto">
+        <main className="flex-1 p-4 sm:p-8 space-y-6 overflow-y-auto w-full max-w-full overflow-x-hidden">
           <div>
             <h1 className="text-2xl font-black uppercase tracking-wide">SYSTEM AUDIT LOGS</h1>
             <p className="text-xs text-[#AAB4C3]">Complete audit trail of all security, check-in, and administration actions.</p>

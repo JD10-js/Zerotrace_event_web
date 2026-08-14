@@ -73,31 +73,31 @@ export default function AdminSidebar({ admin }: { admin: AdminSession }) {
   ];
 
   return (
-    <>
+    <div className="w-full md:w-64 shrink-0 bg-[#05070A] border-b md:border-b-0 md:border-r border-[#1E293B]">
       {/* Mobile Ratio Menu Toggle Bar */}
-      <div className="md:hidden bg-[#071426] border-b border-[#1E293B] px-4 py-3 flex items-center justify-between">
-        <span className="text-xs font-bold text-[#147BFF] uppercase tracking-wider">ADMIN MENU</span>
+      <div className="md:hidden bg-[#071426] px-4 py-3 flex items-center justify-between border-b border-[#1E293B]">
+        <span className="text-xs font-bold text-[#147BFF] uppercase tracking-wider">ADMIN NAVIGATION</span>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="p-2 bg-[#05070A] border border-[#1E293B] rounded-lg text-white font-bold flex items-center gap-1.5 text-xs"
+          className="px-3 py-1.5 bg-[#05070A] border border-[#1E293B] rounded-lg text-white font-bold flex items-center gap-1.5 text-xs shadow"
         >
           {mobileOpen ? <X className="w-4 h-4 text-rose-400" /> : <Menu className="w-4 h-4 text-[#147BFF]" />}
-          {mobileOpen ? 'Close Menu' : 'Navigation Menu'}
+          {mobileOpen ? 'Close Menu' : 'Menu'}
         </button>
       </div>
 
-      {/* Sidebar Content */}
+      {/* Sidebar Content (Always visible on desktop, toggleable on mobile) */}
       <aside
         className={`${
-          mobileOpen ? 'block' : 'hidden md:flex'
-        } w-full md:w-64 bg-[#05070A] border-b md:border-b-0 md:border-r border-[#1E293B] md:min-h-[calc(100vh-73px)] p-4 flex-col justify-between shrink-0 transition-all`}
+          mobileOpen ? 'flex' : 'hidden md:flex'
+        } flex-col justify-between p-4 space-y-6 md:min-h-[calc(100vh-73px)] w-full`}
       >
-        <div className="space-y-6">
-          <div className="px-3 py-2 hidden md:block">
+        <div className="space-y-4">
+          <div className="px-3 py-1 hidden md:block">
             <p className="text-[10px] font-bold uppercase tracking-widest text-[#147BFF]">ADMIN NAVIGATION</p>
           </div>
 
-          <nav className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-1 gap-1">
+          <nav className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-1 gap-1.5">
             {navItems.map((item) => {
               if (!hasPermission(admin, item.permission)) return null;
 
@@ -109,25 +109,27 @@ export default function AdminSidebar({ admin }: { admin: AdminSession }) {
                   key={item.name}
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
                     isActive
                       ? 'bg-[#147BFF] text-white shadow-lg shadow-[#147BFF]/20'
                       : 'text-[#AAB4C3] hover:text-white hover:bg-[#071426]'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-[#147BFF]'}`} />
-                  {item.name}
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-[#147BFF]'}`} />
+                  <span className="truncate">{item.name}</span>
                 </Link>
               );
             })}
           </nav>
         </div>
 
-        <div className="p-3 bg-[#071426] rounded-xl border border-[#1E293B] mt-6">
+        <div className="p-3 bg-[#071426] rounded-xl border border-[#1E293B] mt-4">
           <p className="text-[10px] font-bold text-[#147BFF] uppercase">ZEROTRACE SECURE RBAC</p>
-          <p className="text-[11px] text-[#AAB4C3] truncate">Logged in as <strong className="text-white">{admin.email}</strong></p>
+          <p className="text-[11px] text-[#AAB4C3] truncate">
+            Logged in as <strong className="text-white">{admin.email}</strong>
+          </p>
         </div>
       </aside>
-    </>
+    </div>
   );
 }
