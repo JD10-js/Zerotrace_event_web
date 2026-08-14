@@ -270,3 +270,104 @@ export async function updatePitchDurationAction(teamId: string, durationMinutes:
     return { success: false, error: error.message || 'Failed to update pitch duration.' };
   }
 }
+
+export async function addTeamMemberAction(teamId: string, memberData: {
+  fullName: string;
+  department?: string;
+  year?: string;
+}) {
+  try {
+    const admin = await getCurrentAdminSession();
+    if (!admin) return { success: false, error: 'Unauthorized.' };
+
+    if (!hasPermission(admin, 'EDIT_TEAM')) {
+      return { success: false, error: 'Forbidden: Missing EDIT_TEAM permission.' };
+    }
+
+    const team = await prisma.team.findUnique({ where: { teamId } });
+    if (!team) return { success: false, error: 'Team not found.' };
+
+    const newMember = await prisma.teamMember.create({
+      data: {
+        teamDbId: team.id,
+        fullName: memberData.fullName.trim(),
+        department: memberData.department?.trim() || team.department,
+        year: memberData.year?.trim() || '1st Year',
+      },
+    });
+
+    await logAudit({
+      action: 'TEAM_MEMBER_ADDED',
+      adminId: admin.id,
+      adminEmail: admin.email,
+      relatedTeamId: teamId,
+      details: { memberName: newMember.fullName },
+    });
+
+    return { success: true, member: newMember };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to add team member.' };
+  }
+}
+
+export async function updateTeamMemberAction(memberId: string, memberData: {
+  fullName?: string;
+  department?: string;
+  year?: string;
+}) {
+  try {
+    const admin = await getCurrentAdminSession();
+    if (!admin) return { success: false, error: 'Unauthorized.' };
+
+    if (!hasPermission(admin, 'EDIT_TEAM')) {
+      return { success: false, error: 'Forbidden: Missing EDIT_TEAM permission.' };
+    }
+
+    const updatedMember = await prisma.teamMember.update({
+      where: { id: memberId },
+      data: {
+        ...(memberData.fullName && { fullName: memberData.fullName.trim() }),
+        ...(memberData.department && { department: memberData.department.trim() }),
+        ...(memberData.year && { year: memberData.year.trim() }),
+      },
+    });
+
+    await logAudit({
+      action: 'TEAM_MEMBER_UPDATED',
+      adminId: admin.id,
+      adminEmail: admin.email,
+      details: { memberId, memberName: updatedMember.fullName },
+    });
+
+    return { success: true, member: updatedMember };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to update team member.' };
+  }
+}
+
+export async function deleteTeamMemberAction(memberId: string) {
+  try {
+    const admin = await getCurrentAdminSession();
+    if (!admin) return { success: false, error: 'Unauthorized.' };
+
+    if (!hasPermission(admin, 'EDIT_TEAM')) {
+      return { success: false, error: 'Forbidden: Missing EDIT_TEAM permission.' };
+    }
+
+    const member = await prisma.teamMember.delete({
+      where: { id: memberId },
+    });
+
+    await logAudit({
+      action: 'TEAM_MEMBER_DELETED',
+      adminId: admin.id,
+      adminEmail: admin.email,
+      details: { memberId, memberName: member.fullName },
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to delete team member.' };
+  }
+}
+

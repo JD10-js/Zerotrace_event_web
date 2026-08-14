@@ -14,6 +14,10 @@ import {
   User,
   Users,
   Presentation,
+  Plus,
+  Trash2,
+  Save,
+  X,
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import TicketCard from '@/components/TicketCard';
@@ -25,6 +29,9 @@ import {
   resendTicketEmailAction,
   uploadTeamPresentationAction,
   removeTeamPresentationAction,
+  addTeamMemberAction,
+  updateTeamMemberAction,
+  deleteTeamMemberAction,
 } from '@/actions/team-actions';
 import { confirmCheckInAction } from '@/actions/checkin-actions';
 import { hasPermission } from '@/lib/permissions';
@@ -37,6 +44,18 @@ export default function TeamDetailClient({ team, admin }: { team: any; admin: an
   const [isEditing, setIsEditing] = useState(false);
   const [uploadingPpt, setUploadingPpt] = useState(false);
   const [pptLinkInput, setPptLinkInput] = useState('');
+
+  // Add Member state
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberDept, setNewMemberDept] = useState(team.department || '');
+  const [newMemberYear, setNewMemberYear] = useState('1st Year');
+
+  // Edit Member inline state
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editMemberName, setEditMemberName] = useState('');
+  const [editMemberDept, setEditMemberDept] = useState('');
+  const [editMemberYear, setEditMemberYear] = useState('');
 
   // Edit form state
   const [name, setName] = useState(team.name);
@@ -66,8 +85,60 @@ export default function TeamDetailClient({ team, admin }: { team: any; admin: an
     if (res.success) {
       setMsg('Team details updated successfully!');
       setIsEditing(false);
+      router.refresh();
     } else {
       setMsg(res.error || 'Update failed.');
+    }
+  }
+
+  async function handleAddMember(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newMemberName.trim()) return;
+    setLoading(true);
+    const res = await addTeamMemberAction(team.teamId, {
+      fullName: newMemberName.trim(),
+      department: newMemberDept.trim(),
+      year: newMemberYear.trim(),
+    });
+    setLoading(false);
+    if (res.success) {
+      setNewMemberName('');
+      setShowAddMember(false);
+      setMsg('New team member added successfully!');
+      router.refresh();
+    } else {
+      alert(res.error || 'Failed to add member.');
+    }
+  }
+
+  async function handleSaveMember(memberId: string) {
+    if (!editMemberName.trim()) return;
+    setLoading(true);
+    const res = await updateTeamMemberAction(memberId, {
+      fullName: editMemberName.trim(),
+      department: editMemberDept.trim(),
+      year: editMemberYear.trim(),
+    });
+    setLoading(false);
+    if (res.success) {
+      setEditingMemberId(null);
+      setMsg('Team member updated successfully!');
+      router.refresh();
+    } else {
+      alert(res.error || 'Failed to update member.');
+    }
+  }
+
+  async function handleDeleteMember(memberId: string, memberName: string) {
+    if (!confirm(`Are you sure you want to remove teammate "${memberName}"?`)) return;
+    setLoading(true);
+    const res = await deleteTeamMemberAction(memberId);
+    setLoading(false);
+    if (res.success) {
+      setMsg('Team member deleted.');
+      router.refresh();
+    } else {
+      alert(res.error || 'Failed to delete member.');
     }
   }
 
@@ -381,25 +452,182 @@ export default function TeamDetailClient({ team, admin }: { team: any; admin: an
 
           {/* Leader & Members Card */}
           <div className="glass-panel p-6 rounded-2xl border border-[#1E293B] space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-white border-b border-[#1E293B] pb-3 flex items-center gap-2">
-              <Users className="w-4 h-4 text-[#147BFF]" />
-              TEAM LEADER & MEMBERS ({1 + team.members.length} Total)
-            </h3>
+            <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                <Users className="w-4 h-4 text-[#147BFF]" />
+                TEAM LEADER & MEMBERS ({1 + team.members.length} Total)
+              </h3>
+              {hasPermission(admin, 'EDIT_TEAM') && (
+                <button
+                  onClick={() => setShowAddMember(!showAddMember)}
+                  className="px-3 py-1 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-xs text-white rounded-lg flex items-center gap-1 shadow"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  {showAddMember ? 'Cancel' : 'Add Teammate'}
+                </button>
+              )}
+            </div>
 
+            {/* Add Teammate Form */}
+            {showAddMember && (
+              <form onSubmit={handleAddMember} className="p-4 bg-[#071426] border border-[#147BFF]/40 rounded-xl space-y-3">
+                <h4 className="text-xs font-bold text-[#147BFF] uppercase">Add New Team Member</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <label className="text-[#AAB4C3] block mb-1">Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newMemberName}
+                      onChange={(e) => setNewMemberName(e.target.value)}
+                      placeholder="e.g. Rahul Sharma"
+                      className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-lg p-2 text-white focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[#AAB4C3] block mb-1">Department</label>
+                    <input
+                      type="text"
+                      value={newMemberDept}
+                      onChange={(e) => setNewMemberDept(e.target.value)}
+                      placeholder="e.g. Computer Science"
+                      className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-lg p-2 text-white focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[#AAB4C3] block mb-1">Academic Year</label>
+                    <input
+                      type="text"
+                      value={newMemberYear}
+                      onChange={(e) => setNewMemberYear(e.target.value)}
+                      placeholder="e.g. 1st Year, 2nd Year"
+                      className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-lg p-2 text-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddMember(false)}
+                    className="px-3 py-1.5 bg-[#05070A] border border-[#1E293B] text-xs font-bold text-[#AAB4C3] rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-4 py-1.5 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-xs text-white rounded-lg shadow"
+                  >
+                    SAVE TEAMMATE
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Team Leader Box */}
             <div className="bg-[#05070A] p-4 rounded-xl border border-[#1E293B] space-y-1 text-xs">
               <span className="text-[10px] font-bold text-[#147BFF] uppercase">TEAM LEADER</span>
               <p className="text-sm font-bold text-white">{team.leaderName}</p>
               <p className="text-[#AAB4C3]">Email: {team.leaderEmail} | Phone: {team.leaderPhone}</p>
             </div>
 
+            {/* Team Members List */}
             <div className="space-y-3">
-              {team.members.map((m: any, idx: number) => (
-                <div key={m.id} className="p-3 bg-[#05070A] rounded-xl border border-[#1E293B] text-xs space-y-1">
-                  <span className="text-[10px] font-bold text-[#AAB4C3]">MEMBER #{idx + 1}</span>
-                  <p className="font-semibold text-white">{m.fullName}</p>
-                  <p className="text-[#AAB4C3]">Dept: {m.department || 'N/A'} | Year: {m.year || '1st Year'}</p>
-                </div>
-              ))}
+              {team.members.map((m: any, idx: number) => {
+                const isEditingThis = editingMemberId === m.id;
+
+                return (
+                  <div key={m.id} className="p-3.5 bg-[#05070A] rounded-xl border border-[#1E293B] text-xs transition-all space-y-2">
+                    {isEditingThis ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-[#147BFF] uppercase">EDITING MEMBER #{idx + 1}</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleSaveMember(m.id)}
+                              disabled={loading}
+                              className="px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg text-xs flex items-center gap-1"
+                            >
+                              <Save className="w-3.5 h-3.5" /> Save
+                            </button>
+                            <button
+                              onClick={() => setEditingMemberId(null)}
+                              className="px-2 py-1 bg-[#071426] text-[#AAB4C3] font-bold rounded-lg text-xs"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <div>
+                            <label className="text-[10px] text-[#AAB4C3] block">Full Name</label>
+                            <input
+                              type="text"
+                              value={editMemberName}
+                              onChange={(e) => setEditMemberName(e.target.value)}
+                              className="w-full bg-[#071426] border border-[#1E293B] rounded p-1.5 text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-[#AAB4C3] block">Department</label>
+                            <input
+                              type="text"
+                              value={editMemberDept}
+                              onChange={(e) => setEditMemberDept(e.target.value)}
+                              className="w-full bg-[#071426] border border-[#1E293B] rounded p-1.5 text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-[#AAB4C3] block">Academic Year</label>
+                            <input
+                              type="text"
+                              value={editMemberYear}
+                              onChange={(e) => setEditMemberYear(e.target.value)}
+                              className="w-full bg-[#071426] border border-[#1E293B] rounded p-1.5 text-white"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-bold text-[#AAB4C3]">MEMBER #{idx + 1}</span>
+                          <p className="font-semibold text-white text-sm">{m.fullName}</p>
+                          <p className="text-[#AAB4C3]">Dept: {m.department || 'N/A'} | Year: {m.year || '1st Year'}</p>
+                        </div>
+
+                        {hasPermission(admin, 'EDIT_TEAM') && (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => {
+                                setEditingMemberId(m.id);
+                                setEditMemberName(m.fullName);
+                                setEditMemberDept(m.department || '');
+                                setEditMemberYear(m.year || '1st Year');
+                              }}
+                              className="p-1.5 bg-[#071426] hover:bg-[#0B1F3A] border border-[#1E293B] rounded-lg text-[#147BFF] font-bold text-xs"
+                              title="Edit Member"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteMember(m.id, m.fullName)}
+                              className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-lg text-rose-400 font-bold text-xs"
+                              title="Delete Member"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {team.members.length === 0 && (
+                <p className="text-xs text-[#AAB4C3] py-2">No additional teammates added yet.</p>
+              )}
             </div>
           </div>
 
