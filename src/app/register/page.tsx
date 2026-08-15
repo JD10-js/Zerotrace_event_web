@@ -28,7 +28,7 @@ export default function RegisterPage() {
 
   // Form State
   const [teamName, setTeamName] = useState('');
-  const [college, setCollege] = useState('');
+  const [college, setCollege] = useState('N/A');
   const [department, setDepartment] = useState('');
   const [city, setCity] = useState('');
 
@@ -69,7 +69,7 @@ export default function RegisterPage() {
     setErrorMsg('');
 
     if (currentStep === 1) {
-      if (!teamName.trim() || !college.trim() || !department.trim() || !city.trim()) {
+      if (!teamName.trim() || !department.trim() || !city.trim()) {
         setErrorMsg('Please fill in all team details.');
         return false;
       }
@@ -130,7 +130,7 @@ export default function RegisterPage() {
 
     const res = await registerTeamAction({
       name: teamName,
-      college,
+      college: college || 'N/A',
       department,
       city,
       leaderName,
