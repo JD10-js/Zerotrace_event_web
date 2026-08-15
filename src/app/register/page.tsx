@@ -47,8 +47,8 @@ export default function RegisterPage() {
 
   // Dynamic Add Member
   function addMember() {
-    if (members.length >= 4) {
-      setErrorMsg('Maximum team size limit reached (5 total including leader).');
+    if (members.length >= 14) {
+      setErrorMsg('Maximum team size limit reached (15 total including leader).');
       return;
     }
     setMembers([...members, { fullName: '', department: '', year: '1st Year' }]);

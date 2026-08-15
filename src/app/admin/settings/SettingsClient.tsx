@@ -17,8 +17,8 @@ export default function SettingsClient({
   const [eventName, setEventName] = useState(initialSettings.eventName || 'EUREKA! – Road To Enterprise 2026');
   const [organizerName, setOrganizerName] = useState(initialSettings.organizerName || 'ZeroTrace');
   const [registrationOpen, setRegistrationOpen] = useState(initialSettings.registrationOpen !== 'false');
-  const [minTeamSize, setMinTeamSize] = useState(initialSettings.minTeamSize || '2');
-  const [maxTeamSize, setMaxTeamSize] = useState(initialSettings.maxTeamSize || '5');
+  const [minTeamSize, setMinTeamSize] = useState(initialSettings.minTeamSize || '1');
+  const [maxTeamSize, setMaxTeamSize] = useState(initialSettings.maxTeamSize || '15');
   const [teamIdPrefix, setTeamIdPrefix] = useState(initialSettings.teamIdPrefix || 'ERE26');
   const [startingSequence, setStartingSequence] = useState(initialSettings.startingSequence || '1001');
   const [eventVenue, setEventVenue] = useState(initialSettings.eventVenue || 'Main Auditorium, Innovation Block');

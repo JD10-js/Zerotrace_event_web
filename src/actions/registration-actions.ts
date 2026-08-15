@@ -33,7 +33,7 @@ export async function registerTeamAction(input: RegisterTeamInput) {
     const minSetting = await prisma.eventSetting.findUnique({ where: { key: 'minTeamSize' } });
     const maxSetting = await prisma.eventSetting.findUnique({ where: { key: 'maxTeamSize' } });
     const minSize = minSetting ? parseInt(minSetting.value, 10) : 1;
-    const maxSize = maxSetting ? parseInt(maxSetting.value, 10) : 5;
+    const maxSize = maxSetting ? parseInt(maxSetting.value, 10) : 15;
 
     const totalMembersCount = 1 + (input.members ? input.members.length : 0);
     if (totalMembersCount < minSize) {
