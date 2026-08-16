@@ -553,7 +553,7 @@ export default function LivePresentationClient({
           {/* FLOATING SMALL TIMER OVERLAY WIDGET AT BOTTOM RIGHT */}
           <div className="fixed bottom-6 right-6 z-[10000] shadow-2xl animate-fadeIn">
             <div
-              className={`p-3 rounded-2xl border backdrop-blur-xl transition-all space-y-2 min-w-[210px] ${
+              className={`p-3.5 rounded-2xl border backdrop-blur-xl transition-all space-y-2.5 min-w-[240px] ${
                 isPresentationDone
                   ? 'bg-emerald-950/95 border-emerald-500 shadow-emerald-500/20'
                   : isTimeUp
@@ -564,25 +564,41 @@ export default function LivePresentationClient({
               }`}
             >
               {/* Overlay Top Bar with Close Mark */}
-              <div className="flex items-center justify-between border-b border-[#1E293B] pb-1">
+              <div className="flex items-center justify-between border-b border-[#1E293B] pb-1.5 gap-2">
                 <span className="text-[10px] font-bold text-[#147BFF] uppercase tracking-wider flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-[#147BFF]" />
+                  <Clock className="w-3.5 h-3.5 text-[#147BFF]" />
                   STAGE TIMER
                 </span>
 
+                {/* Show Beep threshold control when paused */}
+                {!isRunning && (
+                  <div className="flex items-center gap-1 text-[10px]">
+                    <span className="text-[#AAB4C3]">Beep:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={warningMinutes}
+                      onChange={(e) => setWarningMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-7 bg-[#05070A] border border-[#1E293B] rounded text-center text-white font-bold py-0.5 focus:outline-none text-[10px]"
+                    />
+                    <span className="text-[#AAB4C3]">m</span>
+                  </div>
+                )}
+
                 <button
                   onClick={toggleFullscreen}
-                  title="Close / Exit Fullscreen Stage"
-                  className="w-5 h-5 rounded-md bg-[#05070A] hover:bg-rose-500/20 border border-[#1E293B] hover:border-rose-500/40 text-[#AAB4C3] hover:text-rose-400 font-bold text-xs flex items-center justify-center transition-all"
+                  title="Close / Exit Stage Fullscreen"
+                  className="w-5 h-5 rounded-md bg-[#05070A] hover:bg-rose-500/20 border border-[#1E293B] hover:border-rose-500/40 text-[#AAB4C3] hover:text-rose-400 font-bold text-xs flex items-center justify-center transition-all shrink-0"
                 >
                   ✕
                 </button>
               </div>
 
-              {/* Minimal Digital Clock Display + Pause + Restart Buttons */}
-              <div className="flex items-center justify-between gap-3 px-1 py-1">
+              {/* Digital Clock Display & Play/Pause & Reset Buttons */}
+              <div className="flex items-center justify-between gap-3 px-1">
                 <div
-                  className={`text-2xl font-black font-mono tracking-widest ${
+                  className={`text-3xl font-black font-mono tracking-widest ${
                     isPresentationDone
                       ? 'text-emerald-400'
                       : isTimeUp
@@ -595,7 +611,27 @@ export default function LivePresentationClient({
                   {formatTime(timeLeft)}
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
+                  {/* Show +1m / -1m quick adjust buttons when paused */}
+                  {!isRunning && (
+                    <>
+                      <button
+                        onClick={() => addMinutes(1)}
+                        className="px-1.5 py-1 bg-[#05070A] hover:bg-[#0B1F3A] border border-[#1E293B] text-[10px] font-bold text-[#147BFF] rounded-lg"
+                        title="Add 1 minute"
+                      >
+                        +1m
+                      </button>
+                      <button
+                        onClick={() => addMinutes(-1)}
+                        className="px-1.5 py-1 bg-[#05070A] hover:bg-[#0B1F3A] border border-[#1E293B] text-[10px] font-bold text-[#AAB4C3] rounded-lg"
+                        title="Subtract 1 minute"
+                      >
+                        -1m
+                      </button>
+                    </>
+                  )}
+
                   {/* Pause / Play Button */}
                   <button
                     onClick={toggleTimer}
@@ -618,26 +654,50 @@ export default function LivePresentationClient({
                 </div>
               </div>
 
-              {/* Presentation Complete & Redirect to Audit Log Option */}
-              {!isPresentationDone ? (
-                <button
-                  onClick={handleMarkPresentationComplete}
-                  className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 font-bold text-[10px] text-white rounded-xl shadow flex items-center justify-center gap-1 uppercase tracking-wider"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  MARK DONE & MOVE TO LOGS
-                </button>
-              ) : (
-                <Link
-                  href="/admin/audit-logs"
-                  className="w-full py-1.5 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-[10px] text-white rounded-xl shadow flex items-center justify-center gap-1 uppercase tracking-wider"
-                >
-                  VIEW AUDIT LOGS →
-                </Link>
+              {/* Show Custom Minutes Input & Mark Done options when paused */}
+              {!isRunning && (
+                <>
+                  {/* Custom Minutes Quick Input Bar */}
+                  <div className="flex items-center justify-between gap-2 bg-[#05070A] p-1.5 rounded-xl border border-[#1E293B] text-[10px]">
+                    <span className="text-[#AAB4C3]">Set Mins:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="60"
+                      value={customMinutesInput}
+                      onChange={(e) => setCustomMinutesInput(e.target.value)}
+                      className="w-12 bg-[#071426] border border-[#1E293B] rounded text-center text-white font-bold py-0.5 focus:outline-none"
+                    />
+                    <button
+                      onClick={handleCustomTimerSet}
+                      className="px-2 py-0.5 bg-[#147BFF] hover:bg-[#0062E6] text-white font-bold rounded"
+                    >
+                      Set
+                    </button>
+                  </div>
+
+                  {/* Presentation Complete & Redirect to Audit Log Option */}
+                  {!isPresentationDone ? (
+                    <button
+                      onClick={handleMarkPresentationComplete}
+                      className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 font-bold text-[10px] text-white rounded-xl shadow flex items-center justify-center gap-1 uppercase tracking-wider"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      MARK DONE & MOVE TO LOGS
+                    </button>
+                  ) : (
+                    <Link
+                      href="/admin/audit-logs"
+                      className="w-full py-1.5 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-[10px] text-white rounded-xl shadow flex items-center justify-center gap-1 uppercase tracking-wider"
+                    >
+                      VIEW AUDIT LOGS →
+                    </Link>
+                  )}
+                </>
               )}
 
-              {/* Minimal Progress Bar */}
-              <div className="w-full bg-[#05070A] h-1 rounded-full overflow-hidden border border-[#1E293B]">
+              {/* Progress Bar */}
+              <div className="w-full bg-[#05070A] h-1.5 rounded-full overflow-hidden border border-[#1E293B]">
                 <div
                   className={`h-full transition-all duration-1000 ${
                     isPresentationDone ? 'bg-emerald-400' : isTimeUp ? 'bg-rose-500' : timeLeft <= warningMinutes * 60 ? 'bg-amber-400' : 'bg-[#147BFF]'
