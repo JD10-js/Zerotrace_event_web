@@ -253,21 +253,41 @@ export async function removeTeamPresentationAction(teamId: string) {
   }
 }
 
-export async function updatePitchDurationAction(teamId: string, durationMinutes: number) {
+export async function updatePitchDurationAction(teamId: string, pitchDurationMinutes: number) {
   try {
     const admin = await getCurrentAdminSession();
     if (!admin) return { success: false, error: 'Unauthorized.' };
 
     await prisma.team.update({
       where: { teamId },
-      data: {
-        pitchDurationMinutes: durationMinutes,
-      },
+      data: { pitchDurationMinutes },
     });
 
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || 'Failed to update pitch duration.' };
+  }
+}
+
+export async function markPresentationCompleteAction(teamId: string) {
+  try {
+    const admin = await getCurrentAdminSession();
+    if (!admin) return { success: false, error: 'Unauthorized.' };
+
+    const team = await prisma.team.findUnique({ where: { teamId } });
+    if (!team) return { success: false, error: 'Team not found.' };
+
+    await logAudit({
+      action: 'STAGE_PRESENTATION_COMPLETED',
+      adminId: admin.id,
+      adminEmail: admin.email,
+      relatedTeamId: teamId,
+      details: { teamName: team.name, leaderName: team.leaderName },
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to record completion log.' };
   }
 }
 
