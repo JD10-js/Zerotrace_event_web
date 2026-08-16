@@ -22,6 +22,9 @@ import {
   BellRing,
   Layers,
   Settings2,
+  CheckCircle2,
+  Trophy,
+  ArrowRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -62,11 +65,13 @@ export default function LivePresentationClient({
   const [layoutMode, setLayoutMode] = useState<'stage' | 'split'>('stage');
 
   // Timer State
-  const [totalSeconds, setTotalSeconds] = useState(team.pitchDurationMinutes * 60);
-  const [timeLeft, setTimeLeft] = useState(team.pitchDurationMinutes * 60);
+  const initialMins = team.pitchDurationMinutes || 5;
+  const [totalSeconds, setTotalSeconds] = useState(initialMins * 60);
+  const [timeLeft, setTimeLeft] = useState(initialMins * 60);
   const [isRunning, setIsRunning] = useState(false);
-  const [customMinutesInput, setCustomMinutesInput] = useState(team.pitchDurationMinutes.toString());
+  const [customMinutesInput, setCustomMinutesInput] = useState(initialMins.toString());
   const [isTimeUp, setIsTimeUp] = useState(false);
+  const [isPresentationDone, setIsPresentationDone] = useState(false);
 
   // Custom Audio Beep Warning State
   const [warningMinutes, setWarningMinutes] = useState(1); // Custom beep warning threshold in minutes
@@ -83,7 +88,7 @@ export default function LivePresentationClient({
   const [slideLinkInput, setSlideLinkInput] = useState('');
 
   // Web Audio API Beep Sound Helper
-  function playBeepSound(type: 'warning' | 'finish' | 'test') {
+  function playBeepSound(type: 'warning' | 'finish' | 'test' | 'done') {
     if (!audioEnabled && type !== 'test') return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -91,7 +96,6 @@ export default function LivePresentationClient({
       const ctx = new AudioCtx();
 
       if (type === 'warning') {
-        // Double warning chime (880Hz -> 1046Hz)
         const osc1 = ctx.createOscillator();
         const gain1 = ctx.createGain();
         osc1.type = 'sine';
@@ -113,14 +117,13 @@ export default function LivePresentationClient({
           osc2.start();
           osc2.stop(ctx.currentTime + 0.35);
         }, 300);
-      } else if (type === 'finish' || type === 'test') {
-        // Triple urgent finish alarm chime
-        [0, 300, 600].forEach((delay, idx) => {
+      } else if (type === 'finish' || type === 'test' || type === 'done') {
+        [0, 250, 500].forEach((delay, idx) => {
           setTimeout(() => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.type = 'triangle';
-            osc.frequency.setValueAtTime(987.77 + idx * 100, ctx.currentTime); // B5 note
+            osc.frequency.setValueAtTime(987.77 + idx * 120, ctx.currentTime);
             gain.gain.setValueAtTime(0.4, ctx.currentTime);
             osc.connect(gain);
             gain.connect(ctx.destination);
@@ -164,10 +167,12 @@ export default function LivePresentationClient({
     };
   }, [isRunning, timeLeft, warningMinutes, hasBeepedWarning, audioEnabled]);
 
-  // Set Preset Duration
+  // Set Custom Minutes Duration
   function setPresetMinutes(mins: number) {
+    if (isNaN(mins) || mins <= 0) return;
     setIsRunning(false);
     setIsTimeUp(false);
+    setIsPresentationDone(false);
     setHasBeepedWarning(false);
     setTotalSeconds(mins * 60);
     setTimeLeft(mins * 60);
@@ -194,6 +199,7 @@ export default function LivePresentationClient({
   function resetTimer() {
     setIsRunning(false);
     setIsTimeUp(false);
+    setIsPresentationDone(false);
     setHasBeepedWarning(false);
     setTimeLeft(totalSeconds);
   }
@@ -201,6 +207,13 @@ export default function LivePresentationClient({
   function addMinutes(mins: number) {
     const newSeconds = Math.max(0, timeLeft + mins * 60);
     setTimeLeft(newSeconds);
+    setTotalSeconds((prev) => Math.max(newSeconds, prev));
+  }
+
+  function handleMarkPresentationComplete() {
+    setIsRunning(false);
+    setIsPresentationDone(true);
+    playBeepSound('done');
   }
 
   // Format mm:ss
@@ -284,17 +297,15 @@ export default function LivePresentationClient({
   const prevTeam = currentIndex > 0 ? allTeams[currentIndex - 1] : null;
   const nextTeam = currentIndex < allTeams.length - 1 ? allTeams[currentIndex + 1] : null;
 
-  // Keyboard Arrow Key Listener for Slide Flipping (ArrowRight, ArrowLeft, Space, PageDown, PageUp)
+  // Keyboard Arrow Key Listener for Slide Flipping
   useEffect(() => {
     function handleGlobalKeyDown(e: KeyboardEvent) {
-      // Don't intercept if typing in an input or textarea
       const targetTag = (e.target as HTMLElement)?.tagName?.toLowerCase();
       if (targetTag === 'input' || targetTag === 'textarea' || targetTag === 'select') {
         return;
       }
 
       if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
-        // Try focusing presentation iframe if present
         const iframe = document.querySelector('iframe');
         if (iframe && iframe.contentWindow) {
           try {
@@ -320,7 +331,7 @@ export default function LivePresentationClient({
   return (
     <div ref={containerRef} className={`space-y-6 max-w-[1600px] mx-auto relative min-h-screen ${isFullscreen ? 'bg-black p-0 m-0 w-screen h-screen overflow-hidden' : 'pb-24'}`}>
       
-      {/* Top Controls & Navigation Header (Hidden in Pure Fullscreen Stage Mode) */}
+      {/* Top Controls & Navigation Header */}
       {!isFullscreen && (
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 glass-panel p-4 rounded-2xl border border-[#1E293B]">
           <div className="flex items-center gap-3">
@@ -336,6 +347,11 @@ export default function LivePresentationClient({
                 <span className="text-[10px] bg-[#147BFF]/20 text-[#147BFF] px-2 py-0.5 rounded font-bold uppercase">
                   {team.name}
                 </span>
+                {isPresentationDone && (
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold uppercase flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> PRESENTED
+                  </span>
+                )}
               </div>
               <h1 className="text-lg font-black text-white">{team.department}</h1>
             </div>
@@ -419,6 +435,32 @@ export default function LivePresentationClient({
               {isFullscreen ? 'Exit Stage' : 'Pure Fullscreen PPT'}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Completion Banner Alert */}
+      {isPresentationDone && !isFullscreen && (
+        <div className="p-4 bg-emerald-500/10 border border-emerald-500/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+              <Trophy className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white uppercase">PRESENTATION COMPLETED! 🎉</h3>
+              <p className="text-xs text-[#AAB4C3]">
+                {team.name} ({team.teamId}) pitch presentation finished successfully.
+              </p>
+            </div>
+          </div>
+
+          {nextTeam && (
+            <Link
+              href={`/admin/present/${nextTeam.teamId}`}
+              className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 font-bold text-xs text-white rounded-xl shadow flex items-center gap-2"
+            >
+              LAUNCH NEXT TEAM ({nextTeam.name}) →
+            </Link>
+          )}
         </div>
       )}
 
@@ -508,8 +550,10 @@ export default function LivePresentationClient({
           {/* FLOATING SMALL TIMER OVERLAY WIDGET AT BOTTOM RIGHT */}
           <div className="fixed bottom-6 right-6 z-[10000] shadow-2xl animate-fadeIn">
             <div
-              className={`p-3.5 rounded-2xl border backdrop-blur-xl transition-all space-y-2.5 ${
-                isTimeUp
+              className={`p-3.5 rounded-2xl border backdrop-blur-xl transition-all space-y-2.5 min-w-[240px] ${
+                isPresentationDone
+                  ? 'bg-emerald-950/95 border-emerald-500 shadow-emerald-500/20'
+                  : isTimeUp
                   ? 'bg-rose-950/95 border-rose-500 animate-pulse shadow-rose-500/20'
                   : timeLeft <= warningMinutes * 60
                   ? 'bg-amber-950/95 border-amber-500 shadow-amber-500/20'
@@ -547,11 +591,13 @@ export default function LivePresentationClient({
                 </div>
               </div>
 
-              {/* Digital Clock */}
-              <div className="flex items-center justify-between gap-4 px-1">
+              {/* Digital Clock & Controls */}
+              <div className="flex items-center justify-between gap-3 px-1">
                 <div
                   className={`text-3xl font-black font-mono tracking-widest ${
-                    isTimeUp
+                    isPresentationDone
+                      ? 'text-emerald-400'
+                      : isTimeUp
                       ? 'text-rose-400'
                       : timeLeft <= warningMinutes * 60
                       ? 'text-amber-400'
@@ -561,10 +607,24 @@ export default function LivePresentationClient({
                   {formatTime(timeLeft)}
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => addMinutes(1)}
+                    className="px-1.5 py-1 bg-[#05070A] hover:bg-[#0B1F3A] border border-[#1E293B] text-[10px] font-bold text-[#147BFF] rounded-lg"
+                    title="Add 1 minute"
+                  >
+                    +1m
+                  </button>
+                  <button
+                    onClick={() => addMinutes(-1)}
+                    className="px-1.5 py-1 bg-[#05070A] hover:bg-[#0B1F3A] border border-[#1E293B] text-[10px] font-bold text-[#AAB4C3] rounded-lg"
+                    title="Subtract 1 minute"
+                  >
+                    -1m
+                  </button>
                   <button
                     onClick={toggleTimer}
-                    className={`p-2 rounded-xl font-bold text-xs text-white shadow transition-all ${
+                    className={`p-1.5 rounded-lg font-bold text-xs text-white shadow transition-all ${
                       isRunning ? 'bg-amber-500 hover:bg-amber-600' : 'bg-[#147BFF] hover:bg-[#0062E6]'
                     }`}
                   >
@@ -573,18 +633,58 @@ export default function LivePresentationClient({
 
                   <button
                     onClick={resetTimer}
-                    className="p-2 bg-[#05070A] hover:bg-[#0B1F3A] border border-[#1E293B] text-xs font-bold text-white rounded-xl"
+                    className="p-1.5 bg-[#05070A] hover:bg-[#0B1F3A] border border-[#1E293B] text-xs font-bold text-white rounded-lg"
+                    title="Reset Timer"
                   >
                     <RotateCcw className="w-3.5 h-3.5 text-[#147BFF]" />
                   </button>
                 </div>
               </div>
 
+              {/* Custom Minutes Quick Input Bar */}
+              <div className="flex items-center justify-between gap-2 bg-[#05070A] p-1.5 rounded-xl border border-[#1E293B] text-[10px]">
+                <span className="text-[#AAB4C3]">Set Mins:</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={customMinutesInput}
+                  onChange={(e) => setCustomMinutesInput(e.target.value)}
+                  className="w-12 bg-[#071426] border border-[#1E293B] rounded text-center text-white font-bold py-0.5 focus:outline-none"
+                />
+                <button
+                  onClick={handleCustomTimerSet}
+                  className="px-2 py-0.5 bg-[#147BFF] hover:bg-[#0062E6] text-white font-bold rounded"
+                >
+                  Set
+                </button>
+              </div>
+
+              {/* Presentation Done Button */}
+              {!isPresentationDone ? (
+                <button
+                  onClick={handleMarkPresentationComplete}
+                  className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 font-bold text-[10px] text-white rounded-xl shadow flex items-center justify-center gap-1 uppercase tracking-wider"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  MARK PRESENTATION DONE
+                </button>
+              ) : (
+                nextTeam && (
+                  <Link
+                    href={`/admin/present/${nextTeam.teamId}`}
+                    className="w-full py-1.5 bg-[#147BFF] hover:bg-[#0062E6] font-bold text-[10px] text-white rounded-xl shadow flex items-center justify-center gap-1 uppercase tracking-wider"
+                  >
+                    NEXT TEAM ({nextTeam.teamId}) →
+                  </Link>
+                )
+              )}
+
               {/* Overlay Progress Bar */}
               <div className="w-full bg-[#05070A] h-1.5 rounded-full overflow-hidden border border-[#1E293B]">
                 <div
                   className={`h-full transition-all duration-1000 ${
-                    isTimeUp ? 'bg-rose-500' : timeLeft <= warningMinutes * 60 ? 'bg-amber-400' : 'bg-[#147BFF]'
+                    isPresentationDone ? 'bg-emerald-400' : isTimeUp ? 'bg-rose-500' : timeLeft <= warningMinutes * 60 ? 'bg-amber-400' : 'bg-[#147BFF]'
                   }`}
                   style={{ width: `${progressPercent}%` }}
                 ></div>
@@ -606,9 +706,9 @@ export default function LivePresentationClient({
 
               {team.presentationUrl ? (
                 <div className="w-full h-[520px] bg-black rounded-2xl border border-[#1E293B] overflow-hidden">
-                  {team.presentationUrl.startsWith('data:application/pdf') || team.presentationUrl.endsWith('.pdf') ? (
+                  {team.presentationUrl.startsWith('data:application/pdf') || team.presentationUrl.toLowerCase().includes('.pdf') || team.presentationUrl.toLowerCase().includes('pdf') ? (
                     <iframe
-                      src={`${team.presentationUrl}#toolbar=1&navpanes=0`}
+                      src={team.presentationUrl.startsWith('http') && team.presentationUrl.includes('drive.google.com') ? team.presentationUrl.replace('/view', '/preview').replace('/edit', '/preview') : `${team.presentationUrl}#toolbar=1&navpanes=0`}
                       className="w-full h-full border-0 bg-white"
                       title="PDF Deck"
                     />
@@ -617,7 +717,7 @@ export default function LivePresentationClient({
                       fileName={team.presentationFileName || 'Pitch_Deck.pptx'}
                       fileUrl={team.presentationUrl}
                       teamName={team.name}
-                      college={team.college}
+                      college={team.department}
                     />
                   )}
                 </div>
@@ -631,7 +731,9 @@ export default function LivePresentationClient({
           <div className="lg:col-span-5 space-y-6">
             <div
               className={`glass-panel p-6 rounded-3xl border transition-all space-y-6 text-center ${
-                isTimeUp
+                isPresentationDone
+                  ? 'border-emerald-500 bg-emerald-500/10'
+                  : isTimeUp
                   ? 'border-rose-500 bg-rose-500/10 animate-pulse'
                   : timeLeft <= warningMinutes * 60
                   ? 'border-amber-500/50 bg-amber-500/5'
@@ -641,12 +743,12 @@ export default function LivePresentationClient({
               <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
                 <span className="text-xs font-bold text-[#147BFF] uppercase tracking-wider flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-[#147BFF]" />
-                  STAGE PITCH TIMER & BEEP SETTINGS
+                  STAGE PITCH TIMER & CONTROLS
                 </span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                  isTimeUp ? 'bg-rose-500 text-white' : isRunning ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#0B1F3A] text-[#AAB4C3]'
+                  isPresentationDone ? 'bg-emerald-500 text-white' : isTimeUp ? 'bg-rose-500 text-white' : isRunning ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#0B1F3A] text-[#AAB4C3]'
                 }`}>
-                  {isTimeUp ? 'TIME EXPIRED!' : isRunning ? 'TIMING LIVE' : 'PAUSED'}
+                  {isPresentationDone ? 'PRESENTATION COMPLETED' : isTimeUp ? 'TIME EXPIRED!' : isRunning ? 'TIMING LIVE' : 'PAUSED'}
                 </span>
               </div>
 
@@ -654,13 +756,13 @@ export default function LivePresentationClient({
               <div className="space-y-2 py-2">
                 <div
                   className={`text-6xl font-black font-mono tracking-widest ${
-                    isTimeUp ? 'text-rose-400' : timeLeft <= warningMinutes * 60 ? 'text-amber-400' : 'text-white'
+                    isPresentationDone ? 'text-emerald-400' : isTimeUp ? 'text-rose-400' : timeLeft <= warningMinutes * 60 ? 'text-amber-400' : 'text-white'
                   }`}
                 >
                   {formatTime(timeLeft)}
                 </div>
                 <p className="text-xs text-[#AAB4C3]">
-                  Configured Duration: {Math.floor(totalSeconds / 60)} Minutes
+                  Duration: {Math.floor(totalSeconds / 60)} Mins ({totalSeconds} Seconds)
                 </p>
               </div>
 
@@ -668,14 +770,14 @@ export default function LivePresentationClient({
               <div className="w-full bg-[#05070A] h-3 rounded-full overflow-hidden border border-[#1E293B]">
                 <div
                   className={`h-full transition-all duration-1000 ${
-                    isTimeUp ? 'bg-rose-500' : timeLeft <= warningMinutes * 60 ? 'bg-amber-400' : 'bg-[#147BFF]'
+                    isPresentationDone ? 'bg-emerald-400' : isTimeUp ? 'bg-rose-500' : timeLeft <= warningMinutes * 60 ? 'bg-amber-400' : 'bg-[#147BFF]'
                   }`}
                   style={{ width: `${progressPercent}%` }}
                 ></div>
               </div>
 
-              {/* Start / Pause / Reset */}
-              <div className="flex items-center justify-center gap-3">
+              {/* Start / Pause / Reset & Time Adjustments */}
+              <div className="flex flex-wrap items-center justify-center gap-3">
                 <button
                   onClick={toggleTimer}
                   className={`py-3 px-6 font-bold text-xs text-white rounded-xl flex items-center gap-2 shadow-lg transition-all ${
@@ -693,29 +795,59 @@ export default function LivePresentationClient({
                   <RotateCcw className="w-4 h-4 text-[#147BFF]" />
                   RESET
                 </button>
+
+                <button
+                  onClick={() => addMinutes(1)}
+                  className="py-3 px-3 bg-[#05070A] hover:bg-[#0B1F3A] border border-[#1E293B] font-bold text-xs text-[#147BFF] rounded-xl"
+                >
+                  +1 MIN
+                </button>
+
+                <button
+                  onClick={() => addMinutes(-1)}
+                  className="py-3 px-3 bg-[#05070A] hover:bg-[#0B1F3A] border border-[#1E293B] font-bold text-xs text-[#AAB4C3] rounded-xl"
+                >
+                  -1 MIN
+                </button>
               </div>
 
-              {/* Custom Beep Warning Setting Card */}
+              {/* Mark Presentation Complete Button */}
+              <div className="pt-2 border-t border-[#1E293B]">
+                <button
+                  onClick={handleMarkPresentationComplete}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 font-bold text-xs text-white rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 uppercase tracking-wide"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  MARK PRESENTATION COMPLETE & FINISHED
+                </button>
+              </div>
+
+              {/* Custom Timer Input Setting Card */}
               <div className="p-4 bg-[#05070A] border border-[#1E293B] rounded-2xl text-left space-y-3">
                 <div className="flex items-center justify-between border-b border-[#1E293B] pb-2">
                   <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <BellRing className="w-4 h-4 text-[#147BFF]" />
-                    CUSTOM AUDIO BEEP WARNING THRESHOLD
+                    <Settings2 className="w-4 h-4 text-[#147BFF]" />
+                    CUSTOM TIMER DURATION
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#AAB4C3]">Trigger Beep Alarm At:</span>
+                <div className="flex items-center justify-between text-xs gap-3">
+                  <span className="text-[#AAB4C3]">Enter Minutes:</span>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
                       min="1"
-                      max="10"
-                      value={warningMinutes}
-                      onChange={(e) => setWarningMinutes(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-16 bg-[#071426] border border-[#1E293B] rounded-lg text-center text-white font-bold py-1.5 focus:outline-none"
+                      max="60"
+                      value={customMinutesInput}
+                      onChange={(e) => setCustomMinutesInput(e.target.value)}
+                      className="w-20 bg-[#071426] border border-[#1E293B] rounded-lg text-center text-white font-bold py-1.5 focus:outline-none text-sm"
                     />
-                    <span className="text-white font-bold">Min(s) Remaining</span>
+                    <button
+                      onClick={handleCustomTimerSet}
+                      className="px-4 py-1.5 bg-[#147BFF] hover:bg-[#0062E6] text-white font-bold rounded-lg"
+                    >
+                      APPLY TIMER
+                    </button>
                   </div>
                 </div>
               </div>
@@ -723,8 +855,8 @@ export default function LivePresentationClient({
               {/* Presets */}
               <div className="space-y-3 text-left">
                 <span className="text-[10px] font-bold text-[#AAB4C3] uppercase block">PRESET DURATIONS</span>
-                <div className="grid grid-cols-4 gap-2">
-                  {[3, 5, 7, 10].map((mins) => (
+                <div className="grid grid-cols-5 gap-2">
+                  {[2, 3, 5, 7, 10, 15].map((mins) => (
                     <button
                       key={mins}
                       onClick={() => setPresetMinutes(mins)}
@@ -734,7 +866,7 @@ export default function LivePresentationClient({
                           : 'bg-[#05070A] text-[#AAB4C3] border-[#1E293B] hover:text-white'
                       }`}
                     >
-                      {mins} MINS
+                      {mins}m
                     </button>
                   ))}
                 </div>
