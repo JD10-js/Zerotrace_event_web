@@ -32,6 +32,7 @@ export default async function AdminTeamsPage() {
     status: t.status,
     createdAt: t.createdAt.toISOString(),
     isCheckedIn: !!t.checkIn,
+    isPresented: !!t.isPresented,
     checkedInAt: t.checkIn ? t.checkIn.checkedInAt.toISOString() : null,
     checkedInBy: t.checkIn ? t.checkIn.checkedInByAdminName : null,
   }));

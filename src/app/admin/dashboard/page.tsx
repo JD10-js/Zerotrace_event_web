@@ -16,6 +16,7 @@ export default async function AdminDashboardPage() {
   // Calculate Metrics
   const totalTeams = await prisma.team.count();
   const checkedInCount = await prisma.checkIn.count();
+  const presentedCount = await prisma.team.count({ where: { isPresented: true } });
   const pendingCheckIn = totalTeams - checkedInCount;
 
   // Registrations today
@@ -76,22 +77,22 @@ export default async function AdminDashboardPage() {
               <p className="text-[11px] text-[#AAB4C3]">Registered on platform</p>
             </div>
 
-            <div className="glass-panel p-5 sm:p-6 rounded-2xl border border-[#1E293B] space-y-2">
+            <Link href="/admin/teams" className="glass-panel p-5 sm:p-6 rounded-2xl border border-[#1E293B] hover:border-emerald-500/50 transition-all space-y-2 group">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#AAB4C3]">CHECKED IN</span>
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#AAB4C3]">PRESENTATIONS FINISHED</span>
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-emerald-400">{checkedInCount}</div>
-              <p className="text-[11px] text-[#AAB4C3]">Venue entry confirmed</p>
-            </div>
+              <div className="text-2xl sm:text-3xl font-black text-emerald-400">{presentedCount}</div>
+              <p className="text-[11px] text-[#AAB4C3]">Pitch completed on stage</p>
+            </Link>
 
             <div className="glass-panel p-5 sm:p-6 rounded-2xl border border-[#1E293B] space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#AAB4C3]">PENDING CHECK-IN</span>
-                <Clock className="w-5 h-5 text-amber-400" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#AAB4C3]">CHECKED IN</span>
+                <CheckCircle2 className="w-5 h-5 text-[#147BFF]" />
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-amber-400">{pendingCheckIn}</div>
-              <p className="text-[11px] text-[#AAB4C3]">Awaiting arrival</p>
+              <div className="text-2xl sm:text-3xl font-black text-white">{checkedInCount}</div>
+              <p className="text-[11px] text-[#AAB4C3]">Venue entry confirmed</p>
             </div>
 
             <div className="glass-panel p-5 sm:p-6 rounded-2xl border border-[#1E293B] space-y-2">

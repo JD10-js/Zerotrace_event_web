@@ -277,6 +277,14 @@ export async function markPresentationCompleteAction(teamId: string) {
     const team = await prisma.team.findUnique({ where: { teamId } });
     if (!team) return { success: false, error: 'Team not found.' };
 
+    await prisma.team.update({
+      where: { teamId },
+      data: {
+        isPresented: true,
+        presentedAt: new Date(),
+      },
+    });
+
     await logAudit({
       action: 'STAGE_PRESENTATION_COMPLETED',
       adminId: admin.id,

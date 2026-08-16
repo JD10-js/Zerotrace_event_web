@@ -57,6 +57,8 @@ model Team {
   presentationUrl       String?
   presentationFileName String?
   pitchDurationMinutes  Int?         @default(5)
+  isPresented           Boolean      @default(false)
+  presentedAt           DateTime?
   createdAt             DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   members           TeamMember[]

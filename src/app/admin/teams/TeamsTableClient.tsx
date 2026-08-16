@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Download, Eye, Ticket, CheckCircle2, Filter } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Search, Download, Eye, Ticket, CheckCircle2, Filter, Trophy, Layers } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import Link from 'next/link';
 import { exportTeamsCsvAction } from '@/actions/export-actions';
@@ -19,6 +19,7 @@ interface TeamRow {
   status: string;
   createdAt: string;
   isCheckedIn: boolean;
+  isPresented: boolean;
   checkedInAt: string | null;
   checkedInBy: string | null;
 }
@@ -31,9 +32,11 @@ export default function TeamsTableClient({
   admin: any;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [checkInFilter, setCheckInFilter] = useState('ALL');
+  const [categoryTab, setCategoryTab] = useState<'ALL' | 'PRESENTED' | 'CHECKED_IN' | 'CONFIRMED'>('ALL');
   const [exporting, setExporting] = useState(false);
+
+  const presentedCount = useMemo(() => initialTeams.filter((t) => t.isPresented).length, [initialTeams]);
+  const checkedInCount = useMemo(() => initialTeams.filter((t) => t.isCheckedIn).length, [initialTeams]);
 
   const filteredTeams = initialTeams.filter((team) => {
     const matchesSearch =
@@ -41,13 +44,16 @@ export default function TeamsTableClient({
       team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       team.leaderName.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === 'ALL' || team.status === statusFilter;
-    const matchesCheckIn =
-      checkInFilter === 'ALL' ||
-      (checkInFilter === 'CHECKED_IN' && team.isCheckedIn) ||
-      (checkInFilter === 'NOT_CHECKED_IN' && !team.isCheckedIn);
+    let matchesCategory = true;
+    if (categoryTab === 'PRESENTED') {
+      matchesCategory = team.isPresented;
+    } else if (categoryTab === 'CHECKED_IN') {
+      matchesCategory = team.isCheckedIn;
+    } else if (categoryTab === 'CONFIRMED') {
+      matchesCategory = team.status === 'CONFIRMED';
+    }
 
-    return matchesSearch && matchesStatus && matchesCheckIn;
+    return matchesSearch && matchesCategory;
   });
 
   async function handleExportCsv() {
@@ -76,7 +82,7 @@ export default function TeamsTableClient({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black uppercase tracking-wide">TEAM REGISTRATIONS</h1>
-          <p className="text-xs text-[#AAB4C3]">Manage registered teams, tickets, and check-in statuses.</p>
+          <p className="text-xs text-[#AAB4C3]">Manage registered teams, presentation status, and check-ins.</p>
         </div>
 
         {hasPermission(admin, 'EXPORT_DATA') && (
@@ -91,11 +97,60 @@ export default function TeamsTableClient({
         )}
       </div>
 
-      {/* Filter Controls Bar */}
-      <div className="glass-panel p-4 rounded-2xl border border-[#1E293B] flex flex-col sm:flex-row items-center gap-4">
-        
-        {/* Search */}
-        <div className="relative flex-1 w-full">
+      {/* SEPARATE CATEGORY FILTER TABS BAR */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#1E293B] pb-3">
+        <button
+          onClick={() => setCategoryTab('ALL')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            categoryTab === 'ALL'
+              ? 'bg-[#147BFF] text-white shadow-lg shadow-[#147BFF]/20'
+              : 'bg-[#071426] text-[#AAB4C3] border border-[#1E293B] hover:text-white'
+          }`}
+        >
+          <Layers className="w-3.5 h-3.5" />
+          ALL TEAMS ({initialTeams.length})
+        </button>
+
+        {/* Dedicated Presentation Finished Category */}
+        <button
+          onClick={() => setCategoryTab('PRESENTED')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            categoryTab === 'PRESENTED'
+              ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+              : 'bg-[#071426] text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/10'
+          }`}
+        >
+          <Trophy className="w-3.5 h-3.5" />
+          PRESENTATION FINISHED ({presentedCount})
+        </button>
+
+        <button
+          onClick={() => setCategoryTab('CHECKED_IN')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            categoryTab === 'CHECKED_IN'
+              ? 'bg-[#147BFF] text-white shadow'
+              : 'bg-[#071426] text-[#AAB4C3] border border-[#1E293B] hover:text-white'
+          }`}
+        >
+          <CheckCircle2 className="w-3.5 h-3.5 text-[#147BFF]" />
+          CHECKED IN ({checkedInCount})
+        </button>
+
+        <button
+          onClick={() => setCategoryTab('CONFIRMED')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            categoryTab === 'CONFIRMED'
+              ? 'bg-[#147BFF] text-white shadow'
+              : 'bg-[#071426] text-[#AAB4C3] border border-[#1E293B] hover:text-white'
+          }`}
+        >
+          CONFIRMED REGISTRATIONS
+        </button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="glass-panel p-4 rounded-2xl border border-[#1E293B]">
+        <div className="relative w-full">
           <Search className="w-4 h-4 text-[#AAB4C3] absolute left-3 top-3" />
           <input
             type="text"
@@ -105,42 +160,19 @@ export default function TeamsTableClient({
             className="w-full bg-[#05070A] border border-[#1E293B] focus:border-[#147BFF] rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:outline-none"
           />
         </div>
-
-        {/* Status Filter */}
-        <div className="flex gap-2 w-full sm:w-auto">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-[#05070A] border border-[#1E293B] text-xs text-white rounded-xl px-3 py-2 focus:outline-none"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="CONFIRMED">CONFIRMED</option>
-            <option value="REVOKED">REVOKED</option>
-          </select>
-
-          <select
-            value={checkInFilter}
-            onChange={(e) => setCheckInFilter(e.target.value)}
-            className="bg-[#05070A] border border-[#1E293B] text-xs text-white rounded-xl px-3 py-2 focus:outline-none"
-          >
-            <option value="ALL">All Check-in States</option>
-            <option value="CHECKED_IN">CHECKED IN</option>
-            <option value="NOT_CHECKED_IN">NOT CHECKED IN</option>
-          </select>
-        </div>
       </div>
 
       {/* Data Table */}
       <div className="glass-panel rounded-2xl border border-[#1E293B] overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-[#AAB4C3] min-w-[650px]">
+          <table className="w-full text-left text-xs text-[#AAB4C3] min-w-[700px]">
             <thead className="bg-[#05070A] uppercase text-[10px] font-bold text-[#147BFF] border-b border-[#1E293B]">
               <tr>
                 <th className="p-4">Team ID</th>
                 <th className="p-4">Team Name</th>
                 <th className="p-4">Leader</th>
                 <th className="p-4">Members</th>
-                <th className="p-4">Reg. Date</th>
+                <th className="p-4">Presentation</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Check-in</th>
                 <th className="p-4 text-right">Actions</th>
@@ -156,7 +188,20 @@ export default function TeamsTableClient({
                     <p className="text-[10px] text-[#AAB4C3]">{team.leaderEmail}</p>
                   </td>
                   <td className="p-4 font-semibold text-white">{team.memberCount}</td>
-                  <td className="p-4 text-[11px]">{new Date(team.createdAt).toLocaleDateString()}</td>
+                  
+                  {/* Presentation Finished Badge */}
+                  <td className="p-4">
+                    {team.isPresented ? (
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 inline-flex items-center gap-1">
+                        <Trophy className="w-3 h-3" /> PRESENTED
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#071426] text-[#AAB4C3] border border-[#1E293B]">
+                        NOT PRESENTED
+                      </span>
+                    )}
+                  </td>
+
                   <td className="p-4">
                     <StatusBadge status={team.status} />
                   </td>
@@ -176,8 +221,8 @@ export default function TeamsTableClient({
               ))}
               {filteredTeams.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-[#AAB4C3]">
-                    No teams found matching search criteria.
+                  <td colSpan={8} className="p-8 text-center text-[#AAB4C3]">
+                    No teams found in category <strong className="text-white">"{categoryTab}"</strong> matching search query.
                   </td>
                 </tr>
               )}
